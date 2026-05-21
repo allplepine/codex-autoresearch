@@ -53,19 +53,14 @@ python3 <skill-root>/scripts/autoresearch_launch_gate.py --repo /path/to/repo
 2. Apply the Recovery Priority Matrix from `session-resume-protocol.md`:
    - JSON valid + TSV consistent -> full resume (skip wizard).
    - JSON valid + TSV inconsistent -> mini-wizard (1 round).
-   - JSON missing + TSV exists -> TSV fallback (reconstruct state, confirm, then create a fresh launch manifest).
+   - JSON missing + TSV exists -> TSV fallback (reconstruct state, confirm, then resume from repaired state).
    - JSON corrupt -> rename to `.bak`, fall back to TSV.
 3. If no prior run is detected, proceed with fresh setup.
 
 Launch-gate interpretation:
 - `fresh` -> continue with the confirmation flow for a new launch.
 - `resumable` -> resume from saved state without inventing a second operator entrypoint.
-- `needs_human` / `blocked_start` -> report the issue or service the runtime-control request first.
-
-Exec-mode exception:
-- Do not resume a prior run.
-- Rename prior persistent run-control artifacts to `.prev` and start fresh.
-- Ignore any old exec scratch state except for cleanup at fresh start, and let the exec workflow remove the new scratch state before exit.
+- `needs_human` / `blocked_start` -> report the issue before launching.
 
 ### Run Artifact Initialization
 
@@ -83,10 +78,6 @@ Here `<skill-root>` is the directory containing the loaded `SKILL.md`. In the co
 
 Bundled helpers expose `--force` only as an internal maintenance override for tests or deliberate manual recovery. Normal skill flow should prefer explicit fresh-start archival instead of using `--force` to bypass legacy-layout or existing-artifact protection.
 
-Exec-mode exception:
-- Let the helper scripts use their scratch JSON state under `/tmp/codex-autoresearch-exec/...`.
-- Clean that scratch state before exit with `python3 <skill-root>/scripts/autoresearch_exec_state.py --cleanup`.
-
 ### Environment Probe
 
 Run environment detection per `references/environment-awareness.md`:
@@ -100,28 +91,22 @@ Run environment detection per `references/environment-awareness.md`:
 Before starting any interactive loop:
 
 1. Scan the repo to understand context.
-2. Ask at least one round of clarifying questions based on what you found -- confirm scope, metric, verify command, run style (until interrupted vs bounded), and any rollback approval needed for unattended execution.
+2. Ask at least one round of clarifying questions based on what you found -- confirm scope, metric, verify command, duration (until interrupted vs bounded), and any rollback approval needed for unattended execution.
    - If the task spans multiple repos, confirm one primary repo plus any companion repos, each with an explicit per-repo scope.
 3. Present a plain-language summary for the user to approve.
 4. Only start the loop after the user explicitly says "go" / "start" / "launch" or equivalent.
 
-Do not silently infer every field and start iterating. The user should approve the goal, success signal, scope, verification, and run mode before the loop begins.
+Do not silently infer every field and start iterating. The user should approve the goal, success signal, scope, and verification before the loop begins.
 
 **Two-phase boundary:** Ask questions before launch. After launch, keep working until a stop condition, blocker, or user interrupt.
 
-- Before the user says "go", require an explicit run-mode choice: **foreground** or **background**.
-- Foreground stays in the same Codex session, uses the official Codex goal as the thread-level continuation anchor when goal tools are available, and calls the shared helper scripts directly.
-- Background calls `autoresearch_runtime_ctl.py launch --repo <primary_repo> --workspace-root <workspace_root>` so the confirmed launch manifest and detached runtime are created in one script-level handoff. Do not create or update official Codex goals for background runs.
-- The launch manifest may describe either a single primary repo or a primary repo plus companion repos with separate scopes.
-- Background runtime cycles launch non-interactive `codex exec` sessions with the generated runtime prompt supplied on stdin. Launch manifests default to `danger_full_access`, so detached sessions normally run with `--dangerously-bypass-approvals-and-sandbox` unless the caller explicitly opts into sandboxed `workspace_write`.
-- If background `codex exec` cannot be launched, or if a stop request cannot actually terminate the detached runner, transition to `needs_human` instead of reporting a misleading idle or stopped state.
+- Before the user says "go", confirm the interactive launch summary and make worker-subagent authorization explicit. Do not ask for a run-mode choice; interactive runs use the supervised path.
+- The parent Codex session stays available for monitoring, uses the official Codex goal as the thread-level continuation anchor when goal tools are available, and delegates the active loop to a worker subagent when subagent tools are available.
+- The worker calls the shared helper scripts directly and keeps the same improve/verify/log protocol. The parent monitors concise milestone summaries and does not duplicate the loop locally.
+- The confirmed launch summary may describe either a single primary repo or a primary repo plus companion repos with separate scopes.
+- Interactive continuation uses only the supervised worker path.
+- If subagent tools are unavailable, run directly in the current session and state that the context-saving supervised worker path is unavailable.
 - After launch, do not pause for clarification, confirmation, or permission. If ambiguity appears mid-loop, apply best practices, log the reasoning, and keep iterating.
-
-Exec-mode exception:
-- Do not ask clarifying or launch questions.
-- Treat the prompt/environment config as authoritative.
-- After safety checks pass, launch immediately.
-- If safety checks fail, emit the JSON error/blocker and exit with code 2.
 
 ### Safety Checks
 
@@ -141,9 +126,6 @@ Treat these files as experiment-owned artifacts, not unrelated user changes:
 - `autoresearch-results/state.json`
 - `autoresearch-results/context.json`
 - `autoresearch-results/lessons.md`
-- `autoresearch-results/launch.json`
-- `autoresearch-results/runtime.json`
-- `autoresearch-results/runtime.log`
 - `.tmp`, `.bak`, and `.prev` variants of those files
 
 They may stay uncommitted between iterations and across resumes, but they must never be staged in experiment commits.
@@ -159,7 +141,6 @@ If `git status --porcelain` is non-empty **during Phase 0 (before launch)**:
 
 - If the user confirms the changes are part of the experiment, continue.
 - If the user says no, suggest `plan` mode or a clean branch/worktree.
-- In `exec` mode, any other pre-existing changes are a hard blocker. Do not ask; emit the blocker and exit with code 2.
 
 If the worktree becomes dirty **after launch** (external modification mid-loop):
 
@@ -403,8 +384,6 @@ These helpers keep two key semantics consistent:
 2. `state.last_trial_metric` is the metric from the latest attempted main iteration.
 3. Parallel batch merges reuse the same lightweight health/worktree preflight before updating the authoritative run state.
 
-In exec mode, this JSON state is scratch-only. It must not remain in the repo after completion.
-
 ## Phase 9: Repeat
 
 For bounded runs:
@@ -433,7 +412,7 @@ After every PIVOT, extract a lesson per `references/lessons-protocol.md`.
 
 ### Lessons Extraction
 
-After every `keep` decision, `autoresearch_record_iteration.py` appends a positive lesson immediately after the authoritative TSV/JSON update. After every PIVOT, the same helper appends a strategic lesson the same way. At managed-runtime completion, `autoresearch_runtime_ctl.py` appends a summary lesson when no lesson was written in the last 5 iterations of the same run. See `references/lessons-protocol.md` for structure and persistence.
+After every `keep` decision, `autoresearch_record_iteration.py` appends a positive lesson immediately after the authoritative TSV/JSON update. After every PIVOT, the same helper appends a strategic lesson the same way. See `references/lessons-protocol.md` for structure and persistence.
 
 ## Phase 8.5: Health Check
 
@@ -441,12 +420,12 @@ Health Check runs strictly between Log (Phase 8) and Phase 8.7 (Re-Anchoring). T
 
 Run health checks per `references/health-check-protocol.md`:
 
-- **Every managed-runtime cycle boundary:** before each detached `codex exec` session (and therefore before every relaunch), `autoresearch_runtime_ctl.py` runs `autoresearch_health_check.py` for disk space, git state, verify command existence, and resume-helper-based TSV/JSON integrity.
-- **Commit safety at the same boundary:** when the managed repos are git-backed, `autoresearch_runtime_ctl.py` also runs `autoresearch_commit_gate.py` with the launch-manifest repo list and per-repo scopes before each detached session. Relaunch is blocked if staged autoresearch artifacts or out-of-scope worktree changes are present in any managed repo.
+- **Supervised worker cycle boundary:** before launch and periodically during long runs, run `autoresearch_health_check.py` for disk space, git state, verify command existence, and resume-helper-based TSV/JSON integrity.
+- **Commit safety at the same boundary:** when the managed repos are git-backed, enforce the same scope-aware worktree check before each trial commit. Iteration is blocked if staged autoresearch artifacts or out-of-scope worktree changes are present in any managed repo.
 - **Extended review:** scope integrity, environment drift, verify/guard consistency, and context health when the workflow explicitly schedules the protocol-level extended checks.
 - Log integrity should use the helper-script reconstruction of main rows and retained state, not raw TSV row counts.
 - `autoresearch_health_check.py` only returns structured `ok / warn / block` findings. Any retries, repairs, or blocker logging must be implemented by the caller.
-- Within a live Codex session, the model must still honor the same scope-aware commit rule before creating a trial commit; the runtime controller can only enforce these checks between detached sessions.
+- Within a live Codex session, the model must honor the scope-aware commit rule before creating a trial commit.
 
 ## Phase 8.7: Protocol Re-Anchoring
 

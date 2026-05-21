@@ -1,6 +1,6 @@
 # Structured Output Specification
 
-Every `codex-autoresearch` mode must produce predictable output and, where defined, predictable artifact files. Interactive and user-facing modes use human-readable sections; `exec` uses JSON-only machine-readable output.
+Every `codex-autoresearch` mode must produce predictable output and, where defined, predictable artifact files. Interactive and user-facing modes use human-readable sections.
 
 ## Status Values
 
@@ -21,7 +21,7 @@ All modes share these status values (see `references/results-logging.md` for ful
 
 ## Common Response Sections
 
-These sections apply to interactive and other user-facing modes. `exec` mode is the exception and follows the JSON contract below.
+These sections apply to every mode.
 
 Before work starts:
 
@@ -83,7 +83,7 @@ Artifact:
 - `autoresearch-results/results.tsv`
 - `autoresearch-results/lessons.md` (if lessons were extracted)
 - `autoresearch-results/state.json` (session state snapshot, not committed to git; see `references/session-resume-protocol.md`)
-- `autoresearch-results/context.json` (canonical workspace-owned run context for resume, status, and control-plane helpers)
+- `autoresearch-results/context.json` (canonical workspace-owned run context for resume and status helpers)
 
 ### plan
 
@@ -168,34 +168,10 @@ ship/{YYMMDD}-{HHMM}-{slug}/
   summary.md
 ```
 
-### exec
-
-JSON output mode for CI/CD. No human-readable text.
-
-Per-iteration line (stdout):
-
-```json
-{"iteration": 1, "commit": "abc1234", "metric": 41, "delta": -6, "guard": "pass", "status": "keep", "description": "narrowed auth types"}
-```
-
-Completion summary (stdout, last line):
-
-```json
-{"status": "completed", "baseline": 47, "best": 38, "best_iteration": 5, "total_iterations": 10, "keeps": 4, "discards": 5, "crashes": 1, "improved": true, "exit_code": 0}
-```
-
-Error output (stderr):
-
-```json
-{"error": "missing required field: Verify", "exit_code": 2}
-```
-
-Exit codes: 0 = improved, 1 = no improvement, 2 = hard blocker.
-
 ## Logging Rules
 
 - TSV headers must be written exactly once.
 - When helper-managed artifacts include timestamps (for example lessons entries or runtime/state metadata), they should use UTC.
-- Workspace-owned artifact metadata should use the documented canonical paths. `context.json` and state config fields store absolute paths so resume and control-plane helpers can resolve the active run without cwd guessing.
+- Workspace-owned artifact metadata should use the documented canonical paths. `context.json` and state config fields store absolute paths so resume and status helpers can resolve the active run without cwd guessing.
 - Final summaries should reference every artifact created.
 - Parallel workers use `[PARALLEL worker-{id}]` prefix.

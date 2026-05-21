@@ -22,7 +22,6 @@ HEADER = [
     "description",
 ]
 SESSION_MODE_CHOICES = ("foreground", "background")
-EXEC_SCRATCH_ROOT = Path("/tmp/codex-autoresearch-exec")
 ARTIFACT_DIR_NAME = "autoresearch-results"
 RESULTS_FILE_NAME = "results.tsv"
 STATE_FILE_NAME = "state.json"

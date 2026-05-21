@@ -384,10 +384,6 @@ def determine_base_decision(
     iterations_cap = config.get("iterations")
     pivot_count = as_int(state.get("pivot_count"))
 
-    if mode == "exec":
-        reasons.append("Exec mode is one-shot and should not be relaunched automatically.")
-        return STOP, "exec_mode_completed", "exec_complete", reasons
-
     goal_reason = goal_reached_reason(payload, current_metric, retained_labels, retained_metrics)
     if goal_reason is not None:
         reasons.append(goal_reason)

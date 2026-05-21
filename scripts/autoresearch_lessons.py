@@ -458,7 +458,7 @@ def append_iteration_lesson(
     description: str,
     iteration: int,
 ) -> dict[str, Any] | None:
-    if state_payload.get("mode") == "exec" or status not in {"keep", "pivot"}:
+    if status not in {"keep", "pivot"}:
         return None
     config = state_payload.get("config", {})
     return append_lesson(
@@ -493,9 +493,6 @@ def append_summary_lesson_if_needed(
     state_payload: dict[str, Any],
     current_iteration: int,
 ) -> dict[str, Any] | None:
-    if state_payload.get("mode") == "exec":
-        return None
-
     run_tag = str(state_payload.get("run_tag") or "").strip() or None
     entries = load_entries_for_append(lessons_path)
     if run_tag is None:

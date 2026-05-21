@@ -634,36 +634,6 @@ def build_state_payload(
     return payload
 
 
-def rebuild_exec_state_payload_from_results(
-    *,
-    results_path: Path,
-    state_path: Path,
-    parsed: ParsedLog | None = None,
-) -> dict[str, Any]:
-    parsed = parsed or parse_results_log(results_path)
-    if parsed.metadata.get("mode") != "exec":
-        raise AutoresearchError(
-            "Cannot rebuild scratch state from a non-exec results log."
-        )
-
-    config = config_from_results_metadata(parsed.metadata)
-    direction = config.get("direction")
-    if direction not in {"lower", "higher"}:
-        raise AutoresearchError(
-            "Exec results log is missing metric_direction metadata needed to rebuild scratch state."
-        )
-
-    summary = log_summary(parsed, direction)
-    payload = build_state_payload(
-        mode="exec",
-        run_tag=parsed.metadata.get("run_tag") or "",
-        config=config,
-        summary=summary,
-    )
-    write_json_atomic(state_path, payload)
-    return payload
-
-
 def build_launch_manifest(
     *,
     original_goal: str,
@@ -742,16 +712,7 @@ def require_consistent_state(
     parsed: ParsedLog | None = None,
 ) -> tuple[ParsedLog, dict[str, Any], dict[str, Any], str]:
     parsed = parsed or parse_results_log(results_path)
-    try:
-        state_payload = read_state_payload(state_path)
-    except AutoresearchError as exc:
-        if not str(exc).startswith("Missing JSON file:") or parsed.metadata.get("mode") != "exec":
-            raise
-        state_payload = rebuild_exec_state_payload_from_results(
-            results_path=results_path,
-            state_path=state_path,
-            parsed=parsed,
-        )
+    state_payload = read_state_payload(state_path)
     direction = state_payload.get("config", {}).get("direction")
     if direction not in {"lower", "higher"}:
         raise AutoresearchError("State config.direction must be 'lower' or 'higher'.")

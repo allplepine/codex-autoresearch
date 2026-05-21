@@ -12,8 +12,7 @@ The protocol-aligned runtime wiring is:
 
 - `autoresearch_record_iteration.py` appends lessons automatically after every `keep` and every `pivot` in interactive modes.
 - `autoresearch_select_parallel_batch.py` appends the same interactive keep lesson when a parallel batch selects a winning worker and records a `keep` main row.
-- `autoresearch_runtime_ctl.py` appends the completion summary lesson when the managed runtime reaches a terminal decision and no lesson has been written in the last 5 iterations of the same run. If no run tag is available, it only suppresses an exact duplicate summary for the current iteration.
-- `exec` mode reads lessons for context but never writes or mutates the lessons file.
+- At completion, append a summary lesson when no lesson has been written in the last 5 iterations of the same run. If no run tag is available, suppress only an exact duplicate summary for the current iteration.
 
 ## Lessons File
 
@@ -121,4 +120,3 @@ Lessons older than 14 days receive reduced weight during hypothesis selection. L
 - **Phase 9 (Repeat):** after pivot -> extract strategic lesson.
 - **Completion:** extract summary lesson.
 - **Session Resume:** lessons file is a moderate-weight detection signal for prior runs (see `session-resume-protocol.md`). Lessons persist across runs and are read at run start regardless of whether JSON state or TSV is used for recovery.
-- **Exec Mode:** exec mode reads lessons for hypothesis filtering but never creates or modifies the lessons file.

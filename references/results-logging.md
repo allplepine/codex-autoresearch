@@ -15,22 +15,19 @@ Fixed files:
 ```text
 results.tsv
 state.json
-launch.json
-runtime.json
-runtime.log
 lessons.md
 context.json
 ```
 
 ### `context.json` Schema
 
-`context.json` is the canonical run context written by `autoresearch_workspace.py`. It replaces the former `autoresearch-hook-context.json` and serves as the single source of truth for resume and control-plane helpers to locate the active run's artifacts.
+`context.json` is the canonical run context written by `autoresearch_workspace.py`. It replaces the former `autoresearch-hook-context.json` and serves as the single source of truth for resume and status helpers to locate the active run's artifacts.
 
 ```json
 {
   "version": 2,
   "active": true,
-  "session_mode": "foreground",
+  "session_mode": null,
   "workspace_root": "/abs/path/to/workspace",
   "artifact_root": "/abs/path/to/workspace/autoresearch-results",
   "primary_repo": "/abs/path/to/repo",
@@ -41,9 +38,9 @@ context.json
   "verify_cwd": "workspace_root",
   "results_path": "/abs/path/to/workspace/autoresearch-results/results.tsv",
   "state_path": "/abs/path/to/workspace/autoresearch-results/state.json",
-  "launch_path": "/abs/path/to/workspace/autoresearch-results/launch.json",
-  "runtime_path": "/abs/path/to/workspace/autoresearch-results/runtime.json",
-  "log_path": "/abs/path/to/workspace/autoresearch-results/runtime.log",
+  "launch_path": null,
+  "runtime_path": null,
+  "log_path": null,
   "updated_at": "2026-04-15T12:00:00Z"
 }
 ```
@@ -52,7 +49,7 @@ context.json
 |-------|------|-------------|
 | `version` | `int` | Schema version, currently `2` |
 | `active` | `bool` | Whether this run context is active |
-| `session_mode` | `string \| null` | `"foreground"`, `"background"`, or `null` |
+| `session_mode` | `string \| null` | Compatibility marker for helper state; do not expose to users |
 | `workspace_root` | `string` | Absolute path to the workspace root |
 | `artifact_root` | `string` | Absolute path to `autoresearch-results/` |
 | `primary_repo` | `string` | Absolute path to the primary git repo |
@@ -60,9 +57,9 @@ context.json
 | `verify_cwd` | `string \| null` | `"workspace_root"` or `"primary_repo"` |
 | `results_path` | `string` | Absolute path to `results.tsv` |
 | `state_path` | `string` | Absolute path to `state.json` |
-| `launch_path` | `string \| null` | Absolute path to `launch.json` (background only) |
-| `runtime_path` | `string \| null` | Absolute path to `runtime.json` (background only) |
-| `log_path` | `string \| null` | Absolute path to `runtime.log` (background only) |
+| `launch_path` | `string \| null` | Reserved for legacy runtime state; normally `null` |
+| `runtime_path` | `string \| null` | Reserved for legacy runtime state; normally `null` |
+| `log_path` | `string \| null` | Reserved for legacy runtime state; normally `null` |
 | `updated_at` | `string` | ISO 8601 UTC timestamp |
 
 Each managed repo also stores a repo-local pointer at `.codex-autoresearch/pointer.json` that references back to the workspace-owned `context.json`.
@@ -211,21 +208,17 @@ These helper scripts live in the skill bundle. Do not confuse them with the targ
 Define `<skill-root>` as the directory that contains the loaded `SKILL.md`. In the common repo-local install this is usually `.agents/skills/codex-autoresearch`, so the exact command becomes `python3 .agents/skills/codex-autoresearch/scripts/...`.
 
 - `python3 <skill-root>/scripts/autoresearch_init_run.py --repo <primary_repo> --workspace-root <workspace_root> ...`
-  Initializes `autoresearch-results/results.tsv` and `autoresearch-results/state.json` together from the baseline measurement, writes canonical `context.json`, and writes repo-local pointers for every managed repo. Interactive runs record `config.session_mode` explicitly; foreground is the default, while background initialization should pass `--session-mode background`. `execution_policy` is only persisted for paths that actually spawn nested Codex sessions: background managed runs and exec. Multi-repo runs may add repeated `--repo-commit PATH=COMMIT` flags to persist companion-repo baseline provenance in JSON state. Runs with structural success criteria may add repeated `--required-keep-label LABEL` flags to protect retained state and repeated `--required-stop-label LABEL` flags so the supervisor only stops when the retained keep also carries those labels.
+  Initializes `autoresearch-results/results.tsv` and `autoresearch-results/state.json` together from the baseline measurement, writes canonical `context.json`, and writes repo-local pointers for every managed repo. Interactive supervised runs use the helper default session marker for compatibility. Multi-repo runs may add repeated `--repo-commit PATH=COMMIT` flags to persist companion-repo baseline provenance in JSON state. Runs with structural success criteria may add repeated `--required-keep-label LABEL` flags to protect retained state and repeated `--required-stop-label LABEL` flags so the supervisor only stops when the retained keep also carries those labels.
 - `python3 <skill-root>/scripts/autoresearch_set_session_mode.py --repo <repo> ...`
-  Internal/scripted helper that synchronizes an existing interactive run's shared JSON state to `foreground` or `background` before the next iteration. Use it only for scripted recovery flows; the skill flow and background `start` already perform the same sync when they resume existing results/state.
+  Legacy internal helper for synchronizing old interactive state. Normal supervised skill flow should not expose or call it.
 - `python3 <skill-root>/scripts/autoresearch_record_iteration.py ...`
   Appends one authoritative main iteration row and updates JSON state atomically. Multi-repo runs may add repeated `--repo-commit PATH=COMMIT` flags to update companion-repo commit provenance while the TSV `commit` column continues to track the primary repo. Repeated `--label LABEL` flags record structured keep/stop-gating labels on the attempted row and retained state.
 - `python3 <skill-root>/scripts/autoresearch_resume_check.py --repo <repo>`
   Reconstructs retained state from the TSV and decides `full_resume`, `mini_wizard`, `tsv_fallback`, or `fresh_start`.
 - `python3 <skill-root>/scripts/autoresearch_select_parallel_batch.py --batch-file ...`
   Logs worker rows, runs the batch-boundary health/worktree preflight, appends the main batch row, and updates JSON state once per batch. Worker batch items may include `repo_commits` for companion-repo provenance and `labels` for structured keep/stop gating.
-- `python3 <skill-root>/scripts/autoresearch_exec_state.py`
-  Prints the deterministic exec scratch-state path under `/tmp` and cleans it up on `--cleanup`.
 - `python3 <skill-root>/scripts/autoresearch_supervisor_status.py --repo <repo>`
-  Computes whether the runtime control plane should relaunch, stop, or ask for human help after a finished turn.
-
-In exec mode, the helper scripts keep JSON state in scratch storage by default and must clean that scratch state before exiting.
+  Computes whether the supervised run should continue, stop, or ask for human help after a finished turn.
 
 ## Rules
 

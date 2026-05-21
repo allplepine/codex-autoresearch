@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
-import hashlib
 import os
 import re
 import subprocess
@@ -11,7 +10,6 @@ from pathlib import Path, PurePosixPath
 from autoresearch_core import (
     ARTIFACT_DIR_NAME,
     AUTORESEARCH_OWNED_BASENAMES,
-    EXEC_SCRATCH_ROOT,
     HOOK_CONTEXT_NAME,
     AutoresearchError,
     LESSONS_FILE_NAME,
@@ -200,12 +198,6 @@ def is_autoresearch_owned_artifact(path: str | Path) -> bool:
     return False
 
 
-def default_exec_state_path(cwd: Path | None = None) -> Path:
-    repo_root = canonical_repo_root(cwd)
-    digest = hashlib.sha256(str(repo_root).encode("utf-8")).hexdigest()[:12]
-    return EXEC_SCRATCH_ROOT / digest / "autoresearch-state.exec.json"
-
-
 def prev_archive_path(path: Path) -> Path:
     if path.suffix:
         return path.with_name(f"{path.stem}.prev{path.suffix}")
@@ -234,8 +226,6 @@ def resolve_state_path(
         base = lexical_abspath(cwd) if cwd is not None else lexical_abspath()
         return lexical_abspath(base / candidate)
 
-    if mode == "exec":
-        return default_exec_state_path(cwd)
     return default_state_path(cwd)
 
 
@@ -247,14 +237,6 @@ def _metadata_path(metadata: dict[str, str], key: str) -> Path | None:
 
 
 def _state_path_from_results_metadata(metadata: dict[str, str]) -> Path | None:
-    if metadata.get("mode") == "exec":
-        workspace_root = _metadata_path(metadata, "workspace_root")
-        if workspace_root is None:
-            raise AutoresearchError(
-                "Exec results log is missing workspace_root metadata needed to locate scratch state."
-            )
-        return default_exec_state_path(workspace_root)
-
     artifact_root = _metadata_path(metadata, "artifact_root")
     if artifact_root is not None:
         return artifact_root / STATE_FILE_NAME
@@ -311,25 +293,6 @@ def resolve_state_path_for_log(
         return default_state_path(cwd)
 
     return default_state_path(None)
-
-
-def cleanup_exec_state(cwd: Path | None = None) -> tuple[Path, bool]:
-    state_path = default_exec_state_path(cwd)
-    removed = False
-    if state_path.exists():
-        state_path.unlink()
-        removed = True
-
-    scratch_root = EXEC_SCRATCH_ROOT.resolve()
-    parent = state_path.parent
-    while parent.exists() and parent != scratch_root:
-        try:
-            parent.rmdir()
-        except OSError:
-            break
-        parent = parent.parent
-
-    return state_path, removed
 
 
 def git_status_entries(repo: Path) -> list[GitStatusEntry]:

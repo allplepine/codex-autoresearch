@@ -9,9 +9,6 @@ The only supported normal artifact layout is workspace-owned:
 ```text
 <workspace_root>/autoresearch-results/results.tsv
 <workspace_root>/autoresearch-results/state.json
-<workspace_root>/autoresearch-results/launch.json
-<workspace_root>/autoresearch-results/runtime.json
-<workspace_root>/autoresearch-results/runtime.log
 <workspace_root>/autoresearch-results/lessons.md
 <workspace_root>/autoresearch-results/context.json
 ```
@@ -22,7 +19,7 @@ Each managed git repo also stores a repo-local pointer at:
 .codex-autoresearch/pointer.json
 ```
 
-Status, stop, resume, and control-plane helpers resolve context in this order: current repo pointer, canonical `autoresearch-results/context.json`, then fail with a clear error. Do not walk upward from cwd looking for guessed contexts, and do not infer repo identity from a results path.
+Status, stop, resume, and helper scripts resolve context in this order: current repo pointer, canonical `autoresearch-results/context.json`, then fail with a clear error. Do not walk upward from cwd looking for guessed contexts, and do not infer repo identity from a results path.
 
 ## JSON State File
 
@@ -34,7 +31,7 @@ The primary recovery source is `autoresearch-results/state.json`, an atomic-writ
   "run_tag": "<run-tag>",
   "mode": "loop",
   "config": {
-    "session_mode": "foreground",
+    "session_mode": null,
     "workspace_root": "/path/to/workspace",
     "artifact_root": "/path/to/workspace/autoresearch-results",
     "primary_repo": "/path/to/primary-repo",
@@ -99,9 +96,7 @@ The primary recovery source is `autoresearch-results/state.json`, an atomic-writ
 
 Write protocol: write to a uniquely named temporary file in the same directory, fsync, then rename to `state.json` (atomic). Never commit the Results directory.
 
-`config.session_mode` is the authoritative interactive-mode marker. It distinguishes foreground runs from background managed runs. Foreground runs resume from `results.tsv` plus `state.json`. Background runs also require a confirmed `launch.json` in the same Results directory.
-
-If an existing interactive run switches from foreground to background or back again, synchronize `state.json` to the chosen mode before continuing. The skill flow handles this internally; scripted background `autoresearch_runtime_ctl.py start` performs the same sync automatically before it relaunches nested Codex sessions, and `autoresearch_set_session_mode.py` remains an internal/scripted recovery helper.
+`config.session_mode` is a compatibility marker for existing helpers. Interactive supervised runs resume from `results.tsv` plus `state.json`; do not expose a run-mode choice to the user.
 
 `config.workspace_root`, `config.artifact_root`, `config.primary_repo`, `config.repos`, and `config.verify_cwd` are required for new runs. `config.repos` is the authoritative managed-repo list: one primary repo plus any companion repos, each with its own scope. `config.scope` remains the primary repo's scope for compact prompts.
 
@@ -109,7 +104,7 @@ If an existing interactive run switches from foreground to background or back ag
 
 `state.current_labels` and `state.last_trial_labels` carry the normalized structured labels attached to the retained keep and the latest trial row. They are used for keep/stop label gates and should be preserved during resume and repair flows.
 
-The `supervisor` object is optional. It is written by the runtime control plane (`autoresearch_runtime_ctl.py` and `autoresearch_supervisor_status.py`), is not required for normal session resume, and should be preserved if present.
+The `supervisor` object is optional. It may be written by supervisor helpers, is not required for normal session resume, and should be preserved if present.
 
 ## Detection Signals
 
@@ -144,12 +139,12 @@ It reconstructs retained state from the TSV, tolerates parallel worker rows, and
 - `tsv_fallback`
 - `fresh_start`
 
-The helper's decision is the single control-plane source for:
+The helper's decision is the single resume source for:
 
 - `autoresearch_launch_gate.py`
 - `autoresearch_health_check.py`
 - `autoresearch_resume_prompt.py`
-- any runtime-managed resume prompt generation inside `autoresearch_runtime_ctl.py`
+- any generated resume prompt
 
 Do not reimplement a second TSV/JSON reconciliation path in those scripts.
 
@@ -179,7 +174,7 @@ When the helper reports `full_resume`:
 4. Read the lessons file if present.
 5. Let the runtime preflight confirm that the configured verify command still resolves before continuing.
 6. If the current metric drifted, log a `drift` row and continue from the recalibrated state.
-7. Background managed-runtime resume requires an existing `autoresearch-results/launch.json`. Foreground resume does not. Legacy repo-root artifacts are not restored into the new schema; switch to a fresh background launch instead of synthesizing compatibility artifacts.
+7. Legacy repo-root artifacts are not restored into the new schema; use a fresh supervised launch instead of synthesizing compatibility artifacts.
 
 ### Priority 2: Mini-Wizard
 
@@ -192,7 +187,7 @@ When JSON exists but the helper reports `mini_wizard`:
    - resume from JSON state, or
    - start fresh and archive old artifacts.
 3. If resuming, use JSON `config` as the authoritative config and re-confirm it in a single block.
-4. If starting fresh, archive prior persistent run-control artifacts with `.prev` suffixes and proceed with the full wizard. In the managed-runtime path, this should happen through `autoresearch_runtime_ctl.py launch --repo <primary_repo> --workspace-root <workspace_root> --fresh-start ...`.
+4. If starting fresh, archive prior persistent run artifacts with `.prev` suffixes and proceed with the full wizard.
 
 ### Priority 3: TSV Fallback
 
@@ -204,15 +199,15 @@ When JSON is missing or unusable but the helper reports `tsv_fallback`:
    python3 <skill-root>/scripts/autoresearch_resume_check.py --repo /path/to/repo --write-repaired-state
    ```
 3. Present one condensed confirmation block sourced from the reconstructed state.
-4. After confirmation, continue from the next main iteration in the chosen mode. Background runs should create a fresh launch manifest at this point; foreground runs resume directly from results/state.
-5. Do not start the detached runtime directly from bare TSV fallback without a confirmed launch manifest.
+4. After confirmation, continue from the next main iteration in the supervised run.
+5. Do not continue from bare TSV fallback without a confirmed launch summary.
 
 ### Priority 4: Fresh Start
 
 When the helper reports `fresh_start`:
 
 1. Proceed with the normal wizard flow.
-2. Rename prior persistent run-control artifacts in `autoresearch-results/` to `.prev` variants if they exist. In the managed-runtime path, this archival is performed by `autoresearch_runtime_ctl.py launch --repo <primary_repo> --workspace-root <workspace_root> --fresh-start ...`.
+2. Rename prior persistent run artifacts in `autoresearch-results/` to `.prev` variants if they exist.
 3. Keep `autoresearch-results/lessons.md` unless it is clearly corrupt.
 
 Legacy repo-root artifacts such as `research-results.tsv`, `autoresearch-state.json`, `autoresearch-launch.json`, `autoresearch-runtime.json`, and `autoresearch-runtime.log` do not participate in recovery. If they are detected, return:
@@ -233,7 +228,7 @@ If `autoresearch-results/results.tsv` is missing a baseline row, has a broken he
 
 ### Different Goal
 
-If the recovered config clearly belongs to a different goal than the current request, start fresh and archive the old run-control artifacts to `.prev` through `autoresearch_runtime_ctl.py launch --repo <primary_repo> --workspace-root <workspace_root> --fresh-start ...`.
+If the recovered config clearly belongs to a different goal than the current request, start fresh and archive the old run artifacts to `.prev`.
 
 
 ## Integration Points
@@ -242,4 +237,3 @@ If the recovered config clearly belongs to a different goal than the current req
 - **results-logging.md:** Main integer rows define retained state; worker rows are audit detail only.
 - **interaction-wizard.md:** Mini-wizard uses helper mismatch reasons instead of raw row counts.
 - **health-check-protocol.md:** Deep integrity checks use the resume helper, not row-count heuristics.
-- **exec-workflow.md:** Exec mode skips session resume, uses scratch JSON state, and requires the workflow to clean up scratch state before exit.

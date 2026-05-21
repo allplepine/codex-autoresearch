@@ -44,13 +44,12 @@ If type or target is missing, collect:
 
 - shipment type,
 - target artifact or destination,
-- run mode (foreground or background),
 - dry-run preference and explicit ship-action approval when external side effects are possible,
 - monitoring duration.
 
 ## Generic Launch Contract
 
-Ship mode follows the same interactive launch contract as the other iterating modes. Before `go`, confirm these generic fields plus the run-mode choice (`foreground` or `background`). Background still hands off through a launch manifest and detached runtime; foreground stays in the current Codex session.
+Ship mode follows the same interactive launch contract as the other iterating modes. Before `go`, confirm these generic fields and any external ship-action approval. The approved run uses the supervised path.
 
 - `Goal` -- ship the selected target safely,
 - `Scope` -- files, configs, scripts, and artifacts that may be edited to satisfy the checklist,

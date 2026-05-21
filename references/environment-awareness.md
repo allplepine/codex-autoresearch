@@ -53,7 +53,7 @@ Respect the confirmed wizard choice first. If the user selected an offline run o
 
 | Probe | Command | Interpretation |
 |-------|---------|----------------|
-| Web policy | read confirmed `web_search` config / launch manifest | whether external network access is even allowed for this run |
+| Web policy | read confirmed `web_search` config | whether external network access is even allowed for this run |
 | Git remote | `git remote -v 2>/dev/null` | remotes configured; does not prove outbound access |
 | Optional outbound HTTP | `curl -s --max-time 3 -o /dev/null -w '%{http_code}' https://httpbin.org/get 2>/dev/null` | run only when `web_search=enabled` and an active external probe is acceptable |
 

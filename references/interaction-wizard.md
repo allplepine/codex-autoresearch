@@ -19,9 +19,9 @@ When this file mentions `<skill-root>`, it means the directory containing the lo
 5. Propose concrete defaults with every question. Let the user confirm or correct.
 6. Aim to finish clarification in 1 to 3 rounds. Ask more only when a real blocker remains; avoid turning setup into a questionnaire.
 7. Present a structured confirmation summary before launching (see Confirmation Format below).
-8. Do not collapse confirmation into a bare "foreground/background + go" prompt. Even when run mode is the only remaining choice, first show a short repo-grounded summary of the goal, metric, verify path, and next step.
+8. Do not collapse confirmation into a bare "go" prompt. First show a short repo-grounded summary of the goal, metric, verify path, and next step.
 9. The user should never see raw field names (Goal, Scope, Metric, Direction, Verify, Guard). Translate everything into natural conversation.
-10. After the user approves the summary, follow the chosen run mode directly from the same skill entrypoint. Foreground stays in the current session; background persists the confirmed launch manifest and starts the runtime controller. Do not tell the user to switch to a different wrapper command.
+10. After the user approves the summary, start the supervised run directly from the same skill entrypoint. Keep the parent session available for monitoring and delegate active iteration to a worker subagent when model-visible subagent tools are available. Do not tell the user to switch to a different wrapper command.
 11. End the confirmation summary with a short runtime checklist that reinforces execution order: baseline first, then initialize artifacts, and always log a completed experiment before starting the next one.
 12. After the launch gate allows a fresh or confirmed interactive launch, check `python3 <skill-root>/scripts/autoresearch_hooks_ctl.py status`. If setup is missing, stale, disabled, or untrusted, run `python3 <skill-root>/scripts/autoresearch_hooks_ctl.py install` before clarification continues. Treat this as internal preparation; keep setup details out of the user-facing summary unless a setup failure blocks launch. Use model-visible goal tools when they are actually available.
 13. Capture the first status response's `startup_tip_needed` value before any install/update. If true, show one product-facing startup tip in the confirmation summary: "For the smoothest long-running runs, start Codex with `codex --enable goals --enable hooks --dangerously-bypass-approvals-and-sandbox`." Do not expose status field names or claim to have detected the exact shell command.
@@ -36,7 +36,7 @@ After the primary repo is known, run `python3 <skill-root>/scripts/autoresearch_
 
 When the flow continues into a fresh or confirmed interactive launch, run the setup check from the global rules. If setup work is needed, do it silently before asking the next clarification question. Do not infer current-session goal-tool availability from saved setup state; use model-visible goal tools when they are actually available. Keep the first startup-tip decision from the initial status check, mention the tip once in the confirmation summary when needed, then continue the normal wizard.
 
-When model-visible goal tools are available, call `get_goal` before the confirmation summary. If an existing official goal cannot be reused for the proposed autoresearch objective, include that conflict in the summary before the user chooses foreground.
+When model-visible goal tools are available, call `get_goal` before the confirmation summary. If an existing official goal cannot be reused for the proposed autoresearch objective, include that conflict in the summary before launch.
 
 ### Step 2: Guided Questions (required)
 
@@ -59,7 +59,7 @@ Rules:
 - If the user says the experiment spans multiple repos, identify one **primary repo** for run-control artifacts and list any additional **companion repos** separately, each with its own scope.
 - Default the `workspace_root` candidate from the launch context. If Codex was started inside a git repo, use that repo root as the default candidate. If Codex was started outside a git repo, use the current launch directory as the default candidate.
 - Do not silently widen `workspace_root` to a parent directory just because nearby sibling repos, old `autoresearch-results/`, or a broader filesystem layout exist. Only widen to a broader shared workspace when the user explicitly confirms that intent.
-- Do not replace the structured summary with a single-line "foreground or background?" prompt. The user should see what you inferred from the repo before they are asked to approve launch.
+- Do not replace the structured summary with a single-line "go?" prompt. The user should see what you inferred from the repo before they are asked to approve launch.
 - If the chosen `workspace_root` is outside the launch context or outside the primary repo, call that out explicitly in the confirmation summary and show the resulting `Results directory`.
 - If clarification changes the `workspace_root`, rerun the launch gate with the confirmed workspace root before the final summary.
 - When the user explicitly describes multiple goals or says they cannot prioritize into a single metric, suggest `verify_format=metrics_json` with a primary metric for the TSV plus acceptance criteria on the others. If the repo scan reveals a verify script that outputs structured multi-metric data, mention it as an option but let the user decide whether they want multi-metric tracking or just a single primary metric. Do not proactively suggest multi-metric when the user's goal is clearly single-metric.
@@ -89,7 +89,7 @@ Before launching, present a structured confirmation summary. The user should be 
 - Use helper scripts for authoritative row/state updates.
 
 **Next step**
-- Choose foreground or background, then reply "go" to start, or tell me what to change.
+- Reply "go" to authorize a supervised worker subagent to start, or tell me what to change.
 ```
 
 #### Format Rules
@@ -98,12 +98,12 @@ Before launching, present a structured confirmation summary. The user should be 
 2. Keep the confirmation scannable -- aim for under 15 lines.
 3. Show concrete numbers (current metric value, file count, etc.) so the user can sanity-check.
 4. The "Need to confirm" section should only contain genuine blockers, not padding.
-5. End with a clear call to action.
-6. If run mode is still undecided, list it under "Need to confirm" and then ask the user to choose foreground or background. Do not omit the summary just because run mode is the only remaining blocker.
+5. End with a clear call to action that makes worker-subagent authorization explicit.
+6. Do not ask for a run-mode choice. Interactive runs use the supervised path.
 7. Keep the base template minimal. Add optional blocks only when they are genuinely needed.
 8. Only show "Required keep labels" and/or "Required stop labels" when the goal truly has structural success requirements beyond the numeric target.
 9. Keep the runtime checklist short. It exists to reinforce execution order, not to restate the whole protocol.
-10. Do not include setup details in the normal confirmation summary. Mention them only when a setup failure blocks the selected run mode.
+10. Do not include setup details in the normal confirmation summary. Mention them only when a setup failure blocks launch.
 11. When the run tracks multiple metrics, show the additional thresholds in plain language (e.g., "Also keeping: hard_conflicts == 0") rather than exposing internal field names. Omit this line entirely for single-metric runs.
 12. Always show the `Results directory`. If it is the default `./autoresearch-results/` under the launch context, the relative form is fine. If it lives outside the launch context or outside the primary repo, show the absolute path and make that widening explicit before launch.
 13. If the startup tip is shown, keep it outside the confirmed run config so users do not confuse it with an internal requirement for this specific run.
@@ -114,28 +114,16 @@ The user replies "go", "start", "launch", or corrects something. No field names,
 
 When the user replies with launch approval (`go`, `start`, `launch`, or an equivalent clear confirmation):
 
-1. Require an explicit run-mode choice: **foreground** or **background**.
-2. By handoff time, the setup check should already be complete. Keep setup details out of the user-facing handoff unless a setup failure blocks the selected run mode.
-3. If the user chose **foreground**, keep the loop in the current Codex session:
-   - when model-visible goal tools are available, align the official Codex goal before initialization: call `get_goal`, reuse a matching non-complete current goal, or call `create_goal` with the confirmed objective when no goal exists
-   - if an existing official goal cannot be reused, do not create another goal; surface that conflict in the confirmation summary before launch and let the user resolve it there
-   - initialize `autoresearch-results/results.tsv`, `autoresearch-results/state.json`, and `autoresearch-results/context.json`
-   - do not create `autoresearch-results/launch.json`, `autoresearch-results/runtime.json`, or `autoresearch-results/runtime.log`
-   - keep the runtime checklist active: baseline first, then log every completed experiment before the next one starts
-   - mark the official Codex goal complete only when the configured autoresearch success condition is actually met; hard blockers and user interruptions are not complete goals
-   - report that the foreground run has started in the current session
-4. If the user chose **background**, persist the confirmed config to `autoresearch-results/launch.json`, start the detached runtime controller, and report the Results directory. The wizard supplies the confirmed `--workspace-root <workspace_root>` internally; users should not have to type it.
-   - the nested background session must receive the same runtime checklist, especially the "log before the next experiment" rule
-   - do not create or update official Codex goals for background runs
-5. Do not ask the user to rerun a shell wrapper command just to continue overnight.
+1. By handoff time, the setup check should already be complete. Keep setup details out of the user-facing handoff unless a setup failure blocks launch.
+2. When model-visible goal tools are available, align the official Codex goal before initialization: call `get_goal`, reuse a matching non-complete current goal, or call `create_goal` with the confirmed objective when no goal exists.
+3. If an existing official goal cannot be reused, do not create another goal; surface that conflict in the confirmation summary before launch and let the user resolve it there.
+4. Start a worker subagent when subagent tools are available; in Codex tool terms, call `spawn_agent` with `agent_type=worker` and `fork_context=true`. Give it the confirmed run config, the workspace paths, the selected workflow references, and the runtime checklist. The worker must initialize `autoresearch-results/results.tsv`, `autoresearch-results/state.json`, and `autoresearch-results/context.json` after the baseline is known, then keep logging every completed experiment before starting the next one.
+5. The parent session monitors the worker with concise milestone summaries. Do not stream raw worker reasoning, do not duplicate the loop locally, and do not ask the user to continue.
+6. If subagent tools are unavailable, run the same loop directly in the current session and state that the context-saving supervised worker path is unavailable.
+7. Mark the official Codex goal complete only when the configured autoresearch success condition is actually met; hard blockers and user interruptions are not complete goals.
+8. Do not ask the user to rerun a shell wrapper command just to continue.
 
-If the chosen path is **Fresh start** after recovery analysis, the handoff should be:
-
-```bash
-python3 <skill-root>/scripts/autoresearch_runtime_ctl.py launch --repo <primary_repo> --workspace-root <workspace_root> --fresh-start ...
-```
-
-This archives prior persistent run-control artifacts inside `autoresearch-results/` to `.prev` before the new background run begins. Legacy repo-root artifacts are not recovered into the new schema; the user must choose fresh start or move/archive them.
+If the chosen path is **Fresh start** after recovery analysis, archive prior persistent run artifacts through the fresh-start flow before the supervised run starts. Legacy repo-root artifacts are not recovered into the new schema; the user must choose fresh start or move/archive them.
 
 ## Optional Question Appendix
 
@@ -167,7 +155,6 @@ Use this appendix only when you need help choosing the shortest useful question 
 
 ### Duration & Strategy
 
-- "Should this run stay in the current foreground session, or hand off to the background runtime after `go`?"
 - "Want me to run 10 iterations as a test, or let it go overnight?"
 - "Should this be an unattended run that keeps going until you interrupt it, or a bounded trial run?"
 - "Should I focus on quick wins first, or go straight for the biggest impact?"
@@ -259,19 +246,12 @@ The wizard internally maps the conversation to these fields (the user never sees
 - Metric -- checklist readiness score (or another mechanical pass-count score)
 - Direction -- `higher`
 - Verify -- Codex proposes a command or script that evaluates the checklist and emits the readiness score
-- Run mode -- foreground or background
 - Ship action -- ask "Dry run first, or ship directly?" only when an external ship action is in scope
 - Monitor -- ask how long to monitor after ship when relevant
 
-### exec
-
-Exec mode does NOT use the wizard. All fields must be provided at invocation time in the `codex exec` prompt or via environment variables. If any required field is missing, exec mode fails immediately with exit code 2. See `references/exec-workflow.md`.
-
 ### Execution Policy
 
-- Background launch manifests record an `execution_policy`.
-- This skill defaults that policy to `danger_full_access` so detached runtime sessions and controlled automation runs inherit full access by default.
-- Only switch to `workspace_write` when the user explicitly asks for a sandboxed run or when you intentionally want to reproduce sandbox-related blockers.
+Interactive supervised runs use the current Codex session permissions.
 
 ## Validation Rules
 
@@ -303,10 +283,6 @@ When `session-resume-protocol.md` detects a prior run with a valid `autoresearch
    - **Resume:** use the JSON `config` as the authoritative source. Briefly confirm scope, metric, and verify command in a single confirmation block.
    - **Fresh start:** archive old artifacts with `.prev` suffixes and proceed with the full wizard.
 3. If the user chooses to resume, present a condensed confirmation summary (same format as Step 3 above but sourced from JSON `config` instead of repo scanning).
-4. The user replies "go" and the loop starts immediately in the chosen run mode:
-   - foreground resume continues directly from `autoresearch-results/results.tsv` + `autoresearch-results/state.json`
-   - background resume launches through `autoresearch_runtime_ctl.py launch --repo <primary_repo> --workspace-root <workspace_root> ...`
-   - fresh-start background handoff uses `autoresearch_runtime_ctl.py launch --repo <primary_repo> --workspace-root <workspace_root> --fresh-start ...`
-   No further rounds.
+4. The user replies "go" and the supervised loop starts immediately from `autoresearch-results/results.tsv` + `autoresearch-results/state.json`. No further rounds.
 
 The mini-wizard respects the same two-phase boundary: all questions happen before launch.

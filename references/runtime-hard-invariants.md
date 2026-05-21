@@ -9,7 +9,7 @@ Use this file as the primary execution checklist during active runs. Keep it sho
 3. Treat every completed experiment as unfinished until it is logged before the next one starts.
 4. Do not emit placeholder progress/status messages when there is no new experiment, no new verification result, and no new blocker.
 5. Use bundled helper scripts for authoritative TSV/JSON updates, keep/stop gating, and row/state semantics.
-6. All normal run artifacts are workspace-owned under `autoresearch-results/`: `results.tsv`, `state.json`, `context.json`, and `lessons.md`; background also uses `launch.json`, `runtime.json`, and `runtime.log`.
+6. All normal run artifacts are workspace-owned under `autoresearch-results/`: `results.tsv`, `state.json`, `context.json`, and `lessons.md`.
 7. Stop only on goal reached, manual stop, configured iteration cap, a true blocker, or the documented soft-blocker handoff after strategy exhaustion.
 8. After any context compaction event, re-read `core-principles.md`, this file, and the selected mode workflow before the next iteration.
 9. Every 10 iterations, run the Protocol Fingerprint Check. If any item fails, re-read the loaded runtime docs before continuing.

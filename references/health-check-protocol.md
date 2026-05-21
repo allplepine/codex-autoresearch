@@ -1,6 +1,6 @@
 # Health Check Protocol
 
-Self-monitoring system that validates environment and run integrity at managed-runtime cycle boundaries. Catches problems before they corrupt results.
+Self-monitoring system that validates environment and run integrity at supervised-run cycle boundaries. Catches problems before they corrupt results.
 
 The executable companions are:
 
@@ -20,14 +20,14 @@ The extended checks below remain protocol-level review items. They may be orches
 
 Here `<skill-root>` means the directory containing the loaded `SKILL.md`.
 
-### Every Managed-Runtime Cycle Boundary (Lightweight)
+### Every Supervised-Run Cycle Boundary (Lightweight)
 
-Run before each detached Codex session. In a runtime-managed loop, this means the checks fire before the first launch and again before every relaunch:
+Run before launch and periodically during long supervised runs:
 
 | Check | How | Failure Action |
 |-------|-----|----------------|
 | Disk space | `df -m . \| awk 'NR==2{print $4}'` >= 500MB | Warning at <1GB, hard blocker at <500MB |
-| Git state | For single-repo runs, `git status --porcelain` shows only expected files and autoresearch-owned artifacts. For multi-repo runs, apply the same check to the primary repo and every companion repo declared in the launch manifest. | Warning if unexpected files; hard blocker if repo is corrupt |
+| Git state | For single-repo runs, `git status --porcelain` shows only expected files and autoresearch-owned artifacts. For multi-repo runs, apply the same check to the primary repo and every confirmed companion repo. | Warning if unexpected files; hard blocker if repo is corrupt |
 | Verify command | Confirm the configured verify command still resolves to an executable | Hard blocker if the verify command is missing |
 | Log integrity | `python3 <skill-root>/scripts/autoresearch_resume_check.py --repo <repo>` can reconstruct TSV state | Hard blocker if the TSV is corrupt |
 | JSON state integrity | Resume helper reports `full_resume` or a recoverable fallback | Warning on divergence; optionally rewrite state from TSV. Hard blocker if both TSV and JSON are unusable |
@@ -100,7 +100,7 @@ Thresholds:
 - **autonomous-loop-protocol.md:** Runs as the detailed reference for Phase 8.5 (Health Check) and Phase 8.7 (Re-Anchoring). Context health feeds into the Protocol Fingerprint Check defined in `runtime-hard-invariants.md`.
 - **environment-awareness.md:** Initial probes establish baselines for drift detection.
 - **parallel-experiments-protocol.md:** `autoresearch_select_parallel_batch.py` reuses the lightweight health/worktree preflight before it accepts a completed parallel batch into the authoritative run state.
-- **multi-repo runs:** the helper remains anchored in the primary repo for results/state/log integrity, but companion repos participate in worktree-scope checks through the launch-manifest repo list.
+- **multi-repo runs:** the helper remains anchored in the primary repo for results/state/log integrity, but companion repos participate in worktree-scope checks through the confirmed repo list.
 - **results-logging.md:** The health helper returns structured findings; append TSV rows only when the runtime explicitly chooses to log a blocker or recovery event.
-- **session-resume-protocol.md:** JSON/TSV integrity checks must reuse `autoresearch_resume_check.py` decisions and launch/runtime control files instead of maintaining a second row-count heuristic.
+- **session-resume-protocol.md:** JSON/TSV integrity checks must reuse `autoresearch_resume_check.py` decisions instead of maintaining a second row-count heuristic.
 - **SKILL.md:** Listed in the load order for iterating modes.

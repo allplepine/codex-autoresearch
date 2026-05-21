@@ -15,7 +15,6 @@ Structured multi-lens reasoning applied before committing to a hypothesis. Not m
 **Skip:**
 - For obvious, mechanical fixes (e.g., fixing an import path, renaming a variable).
 - When the hypothesis is a direct continuation of a successful strategy (same approach, next target).
-- When running in exec mode (minimize overhead in CI).
 
 ## The Four Lenses
 
