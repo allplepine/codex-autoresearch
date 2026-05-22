@@ -4,33 +4,34 @@ These principles define the skill.
 
 ## 1. Constraint Enables Autonomy
 
-Autonomous loops work when scope is small enough to fully understand.
+Autonomous validation works when scope is small enough to fully understand.
 
 - Prefer a bounded file set.
-- Prefer a single metric.
+- Prefer a single primary metric plus explicit guards.
 - Prefer a fixed iteration cost.
 
 ## 2. Humans Set Direction, Agents Execute
 
-The user defines the goal. Codex decides how to test ideas inside the declared boundaries.
+The user defines the idea. Codex turns it into testable hypotheses and executes inside the declared boundaries.
 
 ## 3. Metrics Must Be Mechanical
 
-If a command cannot decide whether the result improved, the loop is not ready.
+If a command cannot produce evidence for support/refutation, the run is not ready.
 
 Good metrics:
 
-- test failure count
-- coverage percentage
+- validation F1/accuracy/loss
+- benchmark score or throughput
+- retrieval recall / MRR / NDCG
+- test failure count as a guard
 - bundle size
 - response latency
-- benchmark throughput
 - validation metric such as `val_bpb`
 
 Bad metrics:
 
 - "looks better"
-- "feels cleaner"
+- "seems publishable"
 - "probably faster"
 
 ## 4. Fast Verification Wins
@@ -51,10 +52,10 @@ Atomic experiments create causality. If the result changes, the agent knows why.
 
 Kept experiments stay in history. Failed experiments are rolled back using the pre-approved experiment rollback strategy. The results log (`autoresearch-results/results.tsv`) records every experiment -- kept or discarded -- as the true audit trail.
 
-## 7. Simplicity Is A Tiebreaker
+## 7. Evidence Beats Optimization
 
-Equal metric plus less complexity is a win. Tiny metric gains (< 1%) with significant code ugliness are not. Marginal improvement plus added complexity = discard. Metric unchanged plus simpler code = keep.
+Do not chase metric gains that do not answer the registered hypothesis. Null results, regressions, leakage failures, and inconclusive measurements are valid outputs when they are honestly logged.
 
 ## 8. Honest Limits
 
-If permissions, tooling, flakiness, or missing context make the loop unsafe, stop and say so. Planning cleanly is better than guessing.
+If permissions, tooling, flakiness, or missing context make the run unsafe, stop and say so. Planning cleanly is better than guessing.

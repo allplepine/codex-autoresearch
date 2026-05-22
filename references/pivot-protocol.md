@@ -5,7 +5,7 @@ Smart stuck recovery that replaces the blunt "5 discards -> re-read" heuristic w
 ## Definitions
 
 - **REFINE:** Adjust within the current strategy. Change parameters, scope, or approach details without abandoning the overall direction.
-- **PIVOT:** Abandon the current strategy entirely. Try a fundamentally different approach to the same goal.
+- **PIVOT:** Abandon the current validation strategy entirely. Try a fundamentally different approach to the same hypothesis.
 
 ## Escalation Ladder
 
@@ -29,7 +29,7 @@ Trigger: 5 consecutive non-keep iterations since the last keep (refines count to
 
 Actions:
 1. Re-read all in-scope files from scratch.
-2. Re-read the original goal.
+2. Re-read the original idea, hypothesis, baseline/control, and leakage guard.
 3. Review the entire results log for patterns.
 4. Explicitly name the strategy being abandoned and why.
 5. Choose a fundamentally different approach:
@@ -40,9 +40,9 @@ Actions:
 6. Consult lessons for successful strategies in different contexts.
 7. Log the decision as status `pivot` in the results TSV.
 
-### Level 3: Web Search Escalation (2 PIVOTs without improvement)
+### Level 3: Web Search Escalation (2 PIVOTs without conclusive evidence)
 
-Trigger: 2 PIVOT decisions have been made since the last keep, with no improvement.
+Trigger: 2 PIVOT decisions have been made since the last keep, with no conclusive evidence.
 
 Actions:
 1. Formulate a targeted search query based on the current blocker.
@@ -50,19 +50,19 @@ Actions:
 3. Treat search results as hypotheses -- still verify mechanically.
 4. Log the search as status `search` in the results TSV.
 
-### Level 4: Soft Blocker Handoff (3 PIVOTs without improvement)
+### Level 4: Soft Blocker Handoff (3 PIVOTs without conclusive evidence)
 
 Trigger: 3 PIVOT decisions without any keep since the first pivot.
 
 Actions:
 1. Print a progress warning:
    ```
-   [WARNING] 3 strategy pivots without improvement. The goal may require
+   [WARNING] 3 strategy pivots without conclusive evidence. The idea may require
    manual intervention, broader scope, or a different metric.
    Stopping the current run and reporting a soft blocker.
    ```
 2. Stop the current run after the current iteration instead of escalating indefinitely.
-3. Report that the next step likely needs human input, broader scope, a better metric, or a deliberate reframing of the goal.
+3. Report that the next step likely needs human input, broader scope, a better metric, a stronger control, or a deliberate reframing of the hypothesis.
 4. Do not invent a new TSV status for this handoff. The authoritative signal remains the accumulated `pivot_count`, the latest logged iteration, and the terminal summary / supervisor decision.
 
 ## Counting Rules
@@ -89,7 +89,7 @@ Actions:
 
 ### PIVOT-Level Counting
 
-The "2 PIVOTs without improvement" threshold for Level 3 counts PIVOT decisions only:
+The "2 PIVOTs without conclusive evidence" threshold for Level 3 counts PIVOT decisions only:
 - A PIVOT decision increments the pivot counter.
 - A `keep` after a PIVOT resets the pivot counter to zero.
 - Consecutive PIVOTs without any intervening `keep` accumulate toward Level 3 and the Level 4 soft-blocker handoff.

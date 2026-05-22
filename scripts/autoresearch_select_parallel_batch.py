@@ -278,7 +278,7 @@ def main() -> int:
     main_commit = "-"
     main_metric = current_metric
     main_guard = "-"
-    main_description = "[PARALLEL batch] no worker improved the retained metric"
+    main_description = "[PARALLEL batch] no worker produced retainable supporting evidence"
     last_trial_commit = "-"
     main_acceptance_state = current_acceptance_state
 
@@ -315,7 +315,7 @@ def main() -> int:
         main_metric = best_completed_record["metric"]
         main_guard = str(best_completed_record["guard"])
         main_description = (
-            "[PARALLEL batch] no worker produced a keepable improvement; "
+            "[PARALLEL batch] no worker produced retainable supporting evidence; "
             f"best discarded worker-{best_completed_record['worker_id']}: "
             f"{best_completed_record['description']}"
         )

@@ -33,7 +33,7 @@ Each lesson is a structured entry:
 - **Strategy:** what was attempted
 - **Outcome:** keep / discard / crash / pivot / summary
 - **Insight:** what to do differently next time
-- **Context:** goal, scope, metric at the time
+- **Context:** idea, hypothesis, scope, metric at the time
 - **Iteration:** {run-tag}#{iteration-number} when a run tag exists, otherwise plain {iteration-number}
 - **Timestamp:** {ISO-8601 UTC}
 ```
@@ -65,7 +65,7 @@ Extract a strategic lesson:
 ### At Run Completion
 
 Extract a summary lesson:
-- Best overall strategy family for this goal type
+- Best overall validation strategy family for this idea type
 - Most common failure patterns
 - Effective verify/guard combinations observed
 
@@ -78,12 +78,12 @@ Extract a summary lesson:
 3. During hypothesis generation (Phase 3: Ideate), consult lessons to:
    - Prefer strategies that succeeded in similar contexts.
    - Avoid strategies that consistently failed.
-   - Adapt successful strategies from related goals.
+   - Adapt successful strategies from related validation runs.
 
 ### During Ideation (Phase 3)
 
 Before committing to a hypothesis:
-1. Scan lessons for entries matching the current goal type or scope.
+1. Scan lessons for entries matching the current idea type, hypothesis, or scope.
 2. If a matching positive lesson exists, bias toward that strategy family.
 3. If a matching negative lesson exists, skip unless the context is materially different.
 

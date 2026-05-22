@@ -1,177 +1,106 @@
 # Structured Output Specification
 
-Every `codex-autoresearch` mode must produce predictable output and, where defined, predictable artifact files. Interactive and user-facing modes use human-readable sections.
+Every `codex-autoresearch` research-validation run must produce predictable user-facing output and predictable artifacts.
 
 ## Status Values
 
-All modes share these status values (see `references/results-logging.md` for full schema):
+All runs share the TSV statuses defined in `references/results-logging.md`:
 
-| Status | Meaning |
-|--------|---------|
-| `baseline` | Initial measurement before any changes |
-| `keep` | Change improved the metric and passed guard |
-| `discard` | Change did not improve or failed guard |
-| `crash` | Verification crashed or produced an error |
-| `no-op` | No actual diff was produced |
-| `blocked` | Hard blocker encountered, loop stopped |
-| `refine` | Strategy adjustment within current approach |
-| `pivot` | Strategy abandoned, fundamentally new approach |
-| `search` | Web search performed for external knowledge |
+| Status | Research Meaning |
+|--------|------------------|
+| `baseline` | Baseline/control measurement |
+| `keep` | Evidence supports the registered hypothesis and passes guards |
+| `discard` | Evidence refutes the hypothesis, is unsupported, or fails guards |
+| `crash` | Verification crashed or produced unusable evidence |
+| `no-op` | No actual experiment was run |
+| `blocked` | A blocker prevents valid validation |
+| `refine` | Validation strategy refined within the same idea |
+| `pivot` | Validation strategy changed because evidence remained inconclusive |
+| `search` | External information gathered to form a new validation hypothesis |
 | `drift` | Metric drifted from expected value during session resume |
 
-## Common Response Sections
+Use the row description to record `support`, `refute`, or `inconclusive`.
 
-These sections apply to every mode.
+## Common Sections
 
-Before work starts:
+Before launch:
 
 1. `Setup`
-2. `Config`
-3. `Baseline`
+2. `Validation Plan`
+3. `Baseline/Control`
 
 During work:
 
-1. `Iteration`
-2. `Metric`
-3. `Decision`
+1. `Hypothesis`
+2. `Experiment`
+3. `Evidence`
+4. `Decision`
 
 At completion:
 
-1. `Summary`
-2. `Artifacts`
-3. `Next Actions`
+1. `Conclusion`
+2. `Evidence Summary`
+3. `Artifacts`
+4. `Unvalidated Questions`
 
-## Common Iteration Line
+## Iteration Line
 
-Use this shape during loops:
-
-```text
-[iteration N] hypothesis -> metric result -> keep/discard/crash
-```
-
-Extended statuses for stuck recovery and search:
+Use this shape during validation:
 
 ```text
-[iteration N] [REFINE] adjusted strategy -> metric result -> refine
-[iteration N] [PIVOT] abandoned strategy X, trying Y -> metric result -> pivot
-[iteration N] [SEARCH] "query" -> found approach -> metric result -> search
+[iteration N] hypothesis -> experiment -> evidence -> support/refute/inconclusive
 ```
 
-Parallel batch notation:
+Examples:
 
 ```text
-[iteration Na] [PARALLEL worker-a] hypothesis -> metric result -> keep (SELECTED)
-[iteration Nb] [PARALLEL worker-b] hypothesis -> metric result -> discard
+[iteration 1] contrastive loss should improve macro F1 -> loss-only ablation -> +1.8 F1, guard pass -> support
+[iteration 2] stronger augmentation should help -> augmentation-only ablation -> -0.6 F1 -> refute
+[iteration 3] retrieval temperature may matter -> temp sweep crashed on OOM -> crash
 ```
 
-## Mode Output Templates
-
-### loop
+## Research Output
 
 Required completion summary:
 
-- goal
-- baseline metric
-- best metric
-- keep/discard/crash/refine/pivot counts
-- lessons extracted (count)
-- environment summary (one line)
-- artifact path
+- idea,
+- hypothesis tested,
+- baseline/control,
+- metric and verification command,
+- best/current evidence,
+- support/refute/inconclusive decision,
+- negative results count,
+- leakage guard outcome,
+- ablations completed,
+- repeat policy actually used,
+- remaining unvalidated questions,
+- artifact paths.
 
-Artifact:
-
-- `autoresearch-results/results.tsv`
-- `autoresearch-results/lessons.md` (if lessons were extracted)
-- `autoresearch-results/state.json` (session state snapshot, not committed to git; see `references/session-resume-protocol.md`)
-- `autoresearch-results/context.json` (canonical workspace-owned run context for resume and status helpers)
-
-### plan
-
-Required reply sections:
-
-- Goal
-- Scope
-- Metric
-- Direction
-- Verify
-- Guard
-- Launch Options
-
-No output directory required unless the user asks to save artifacts.
-
-### debug
-
-Debug mode also persists the generic run-control artifacts under `autoresearch-results/`; the debug directory is the investigation report.
-
-Output directory:
-
-```text
-debug/{YYMMDD}-{HHMM}-{slug}/
-  findings.md
-  eliminated.md
-  debug-results.tsv
-  summary.md
-```
-
-`summary.md` must include:
-
-- issue statement
-- scope
-- findings by severity
-- disproven hypotheses count
-- recommended next action
-
-### fix
-
-No extra output directory is required by default. Fix mode uses the normal run artifacts under `autoresearch-results/`:
-
-- `results.tsv`
-- `state.json`
-- `context.json`
-- `lessons.md` if extracted
-
-If the user explicitly asks to save human-readable closeout artifacts, write them under `autoresearch-results/fix/{YYMMDD}-{HHMM}-{slug}/`, not repo-root `fix/`.
-
-### security
-
-Security mode also persists the generic run-control artifacts under `autoresearch-results/`; the security directory is the audit report.
-
-Output directory:
-
-```text
-security/{YYMMDD}-{HHMM}-{slug}/
-  overview.md
-  threat-model.md
-  attack-surface-map.md
-  findings.md
-  coverage.md
-  dependency-audit.md
-  recommendations.md
-  security-audit-results.tsv
-```
-
-### ship
-
-Ship mode also persists the generic iterating-run artifacts:
+Artifacts:
 
 - `autoresearch-results/results.tsv`
-- `autoresearch-results/lessons.md` (if lessons were extracted)
 - `autoresearch-results/state.json`
 - `autoresearch-results/context.json`
+- `autoresearch-results/lessons.md` if lessons were extracted
 
-Output directory:
+Optional human-readable research closeout:
 
 ```text
-ship/{YYMMDD}-{HHMM}-{slug}/
-  checklist.md
-  ship-log.tsv
-  summary.md
+autoresearch-results/research/{YYMMDD}-{HHMM}-{slug}/
+  validation-plan.md
+  evidence-summary.md
+  negative-results.md
+  conclusion.md
 ```
+
+Create the optional closeout only when useful or requested; the TSV/state artifacts remain authoritative.
 
 ## Logging Rules
 
 - TSV headers must be written exactly once.
-- When helper-managed artifacts include timestamps (for example lessons entries or runtime/state metadata), they should use UTC.
-- Workspace-owned artifact metadata should use the documented canonical paths. `context.json` and state config fields store absolute paths so resume and status helpers can resolve the active run without cwd guessing.
+- Always record the baseline/control before treatment experiments.
+- Record negative and inconclusive outcomes, not just supportive metric changes.
+- Row descriptions should mention the hypothesis or ablation being tested.
+- Workspace-owned artifact metadata should use canonical paths. `context.json` and state config fields store absolute paths so resume and status helpers can resolve the active run without cwd guessing.
 - Final summaries should reference every artifact created.
 - Parallel workers use `[PARALLEL worker-{id}]` prefix.

@@ -9,12 +9,12 @@ Run multiple hypotheses concurrently using subagent workers in isolated git work
 ### When Parallel Mode Is Safe
 
 - **CPU-bound verify commands** (always safe):
-  - Eliminating type errors (`tsc --noEmit`)
-  - Raising test coverage (`pytest --cov`)
-  - Reducing lint warnings (`eslint`, `ruff`, `clippy`)
-  - Shrinking bundle size (build + measure)
-  - Fixing broken tests
-  - Code-only optimizations
+  - Evaluating independent prompt variants
+  - Comparing retrieval scoring formulas
+  - Running lightweight benchmark ablations
+  - Testing preprocessing or feature toggles
+  - Checking multiple seeds when the repo supports quick runs
+  - Independent code/config ablations
 
 - **GPU/NPU workloads with sufficient devices** (safe with constraints):
   - 16 GPUs, each experiment uses 8 -> 2 parallel experiments possible
@@ -137,7 +137,7 @@ For each hypothesis, launch a subagent with:
 
 - Task: apply hypothesis, run verify command, run guard command, report metric.
 - Isolation: git worktree (created from current HEAD).
-- Context: current goal, scope, metric, direction, verify command, guard command, current best metric (best value achieved before this parallel batch, or baseline if no keeps exist yet).
+- Context: current idea, hypothesis, scope, metric, direction, verify command, guard command, baseline/control, and current retained evidence.
 - Device assignment (GPU/NPU workloads only): set `CUDA_VISIBLE_DEVICES`, `ASCEND_RT_VISIBLE_DEVICES`, or equivalent environment variable to the worker's non-overlapping device slice.
 - Constraint: one focused change only, same rules as serial mode.
 - **No user interaction:** Workers operate fully autonomously. They never ask questions, never pause for confirmation, never output to the user. They report results only to the orchestrator.
@@ -147,13 +147,14 @@ Worker prompt template:
 ```
 You are a parallel experiment worker for codex-autoresearch.
 
-Goal: {goal}
+Idea: {idea}
+Hypothesis: {hypothesis}
 Scope: {scope}
-Hypothesis: {hypothesis_description}
+Validation question: {hypothesis_description}
 Verify: {verify_command}
 Guard: {guard_command}
 Metric direction: {direction}
-Current best metric: {current_best}
+Current retained metric: {current_metric}
 
 Instructions:
 1. Apply the hypothesis as a single focused change.
@@ -185,9 +186,9 @@ Selection rules:
 
 1. Discard any result where guard failed.
 2. Discard any result where metric moved in the wrong direction.
-3. Among remaining results, pick the one with the best metric improvement.
-4. If multiple results have identical improvement, prefer the smaller diff.
-5. If no result improved, discard all (count as a single discard for pivot tracking).
+3. Among remaining results, pick the one with the clearest evidence for the registered hypothesis.
+4. If multiple results have equivalent evidence, prefer the smaller diff.
+5. If no result supports the hypothesis, discard all (count as a single discard for pivot tracking).
 
 ### 5. Merge Best Result
 
@@ -210,10 +211,10 @@ Parallel iterations use a batch notation:
 
 ```tsv
 iteration	commit	metric	delta	guard	status	description
-5a	abc1234	38	-3	pass	keep	[PARALLEL worker-a] narrowed auth types
-5b	-	42	+1	pass	discard	[PARALLEL worker-b] wrapper approach
+5a	abc1234	38	-3	pass	keep	[PARALLEL worker-a] support: BM25+embedding rerank improved recall
+5b	-	42	+1	pass	discard	[PARALLEL worker-b] refute: prompt-only rerank reduced recall
 5c	-	41	0	-	crash	[PARALLEL worker-c] timeout after 20m
-5	abc1234	38	-3	pass	keep	[PARALLEL batch] selected worker-a: narrowed auth types
+5	abc1234	38	-3	pass	keep	[PARALLEL batch] selected worker-a: rerank ablation produced support
 ```
 
 - Worker rows (`5a`, `5b`, `5c`) are audit detail.
@@ -250,7 +251,7 @@ When falling back:
 ## Integration Points
 
 - **interaction-wizard.md:** Add parallel mode question to wizard (before "go" only).
-- **autonomous-loop-protocol.md:** Phase 3 (Ideate) generates multiple hypotheses when parallel is active.
+- **autonomous-loop-protocol.md:** Phase 3 generates multiple validation questions when parallel is active.
 - **environment-awareness.md:** Resource probes inform parallelism limits; for GPU/NPU workloads they only permit parallel mode when enough free devices exist.
 - **pivot-protocol.md:** A parallel batch with zero keeps counts as one discard toward pivot thresholds.
 - **lessons-protocol.md:** Keep worker rows as audit detail and append the resulting interactive keep lesson only for the authoritative selected main row.

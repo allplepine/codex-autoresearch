@@ -638,7 +638,7 @@ def build_launch_manifest(
     *,
     original_goal: str,
     config: dict[str, Any],
-    mode: str = "loop",
+    mode: str = "research",
     approvals: dict[str, Any] | None = None,
     defaults: dict[str, Any] | None = None,
     resume_seed: dict[str, Any] | None = None,

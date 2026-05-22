@@ -49,8 +49,19 @@ def build_parser() -> argparse.ArgumentParser:
         "--state-path",
         help=argparse.SUPPRESS,
     )
-    parser.add_argument("--mode", required=True, choices=["loop", "debug", "fix", "security", "ship"])
+    parser.add_argument("--mode", required=True, choices=["research"])
     parser.add_argument("--goal", required=True)
+    parser.add_argument("--hypothesis")
+    parser.add_argument("--expected-evidence")
+    parser.add_argument("--baseline-control")
+    parser.add_argument("--leakage-guard")
+    parser.add_argument(
+        "--ablation",
+        action="append",
+        default=[],
+        help="Record one approved ablation question or boundary. May be repeated.",
+    )
+    parser.add_argument("--repeat-policy")
     parser.add_argument("--scope", required=True)
     parser.add_argument(
         "--companion-repo-scope",
@@ -201,6 +212,18 @@ def main() -> int:
         "parallel_mode": args.parallel_mode,
         "web_search": args.web_search,
     }
+    research_config = {
+        "hypothesis": args.hypothesis,
+        "expected_evidence": args.expected_evidence,
+        "baseline_control": args.baseline_control,
+        "leakage_guard": args.leakage_guard,
+        "repeat_policy": args.repeat_policy,
+    }
+    for key, value in research_config.items():
+        if value not in (None, "", []):
+            config[key] = value
+    if args.ablation:
+        config["ablations"] = list(args.ablation)
     if acceptance_criteria:
         config["acceptance_criteria"] = acceptance_criteria
     if required_keep_criteria:
@@ -225,6 +248,7 @@ def main() -> int:
             comment("workspace_root", workspace_root),
             comment("artifact_root", artifact_defaults.artifact_root),
             comment("primary_repo", repo.resolve()),
+            comment("idea", args.goal),
             comment("goal", args.goal),
             comment("scope", repo_targets[0].scope),
             comment(
@@ -238,6 +262,11 @@ def main() -> int:
             comment("primary_metric_key", config["primary_metric_key"]),
         ]
     )
+    for key, value in research_config.items():
+        if value not in (None, "", []):
+            comments.append(comment(key, value))
+    if args.ablation:
+        comments.append(comment("ablations", " | ".join(args.ablation)))
     if args.run_tag:
         comments.append(comment("run_tag", args.run_tag))
     if args.guard:

@@ -29,13 +29,19 @@ The primary recovery source is `autoresearch-results/state.json`, an atomic-writ
 {
   "version": 1,
   "run_tag": "<run-tag>",
-  "mode": "loop",
+  "mode": "research",
   "config": {
     "session_mode": null,
     "workspace_root": "/path/to/workspace",
     "artifact_root": "/path/to/workspace/autoresearch-results",
     "primary_repo": "/path/to/primary-repo",
-    "goal": "<goal text>",
+    "goal": "<idea/hypothesis summary>",
+    "hypothesis": "<registered hypothesis>",
+    "expected_evidence": "<support/refute/inconclusive evidence rule>",
+    "baseline_control": "<baseline/control description>",
+    "leakage_guard": "<guarded split/files/benchmark boundary>",
+    "ablations": ["<approved ablation boundary>"],
+    "repeat_policy": "<seed/repeat policy>",
     "scope": "<glob pattern>",
     "repos": [
       {"path": "/path/to/primary-repo", "scope": "src/**", "role": "primary"},
@@ -116,7 +122,7 @@ At the start of every invocation, check for prior run artifacts in this order:
 | 2 | Results log | `autoresearch-results/results.tsv` exists and has a baseline row | strong |
 | 3 | Lessons file | `autoresearch-results/lessons.md` exists | moderate |
 | 4 | Git history | Recent commits with `experiment:` prefix | moderate |
-| 5 | Output dirs | Optional mode closeout directories such as `debug/`, `security/`, `ship/`, or `autoresearch-results/fix/` | weak |
+| 5 | Output dirs | Optional research closeout directories such as `autoresearch-results/research/` | weak |
 
 If none of these signals are present, proceed with a fresh run (normal wizard flow).
 
@@ -163,7 +169,7 @@ Use `--write-repaired-state` when TSV recovery is valid and you want to rewrite 
 
 When the helper reports `full_resume`:
 
-1. Restore loop variables from the JSON `state` and `config`.
+1. Restore validation variables from the JSON `state` and `config`.
 2. Print a resume banner:
    ```
    Resuming from iteration {state.iteration}, retained metric: {state.current_metric}, best metric: {state.best_metric}.
@@ -226,9 +232,9 @@ If `autoresearch-results/state.json` exists but is not valid JSON, treat it as u
 
 If `autoresearch-results/results.tsv` is missing a baseline row, has a broken header, or contains unparsable metric cells, treat it as corrupt and start fresh.
 
-### Different Goal
+### Different Idea
 
-If the recovered config clearly belongs to a different goal than the current request, start fresh and archive the old run artifacts to `.prev`.
+If the recovered config clearly belongs to a different idea or hypothesis than the current request, start fresh and archive the old run artifacts to `.prev`.
 
 
 ## Integration Points

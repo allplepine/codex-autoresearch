@@ -67,7 +67,7 @@ Follow-up actions belong to the caller:
 
 ## Hard Blocker Criteria
 
-These issues stop the loop immediately:
+These issues stop the validation run immediately:
 
 | Issue | Reason |
 |-------|--------|

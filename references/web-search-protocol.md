@@ -1,13 +1,13 @@
 # Web Search Protocol
 
-Controlled integration of web search into the autonomous loop. Search results are treated as hypothesis inputs, never as verified solutions.
+Controlled integration of web search into research validation. Search results are treated as hypothesis inputs, never as verified solutions.
 
 ## When to Search
 
 ### Automatic Triggers
 
-1. **PIVOT Escalation:** After 2 PIVOTs without improvement (see `references/pivot-protocol.md` Level 3).
-2. **Unfamiliar Error:** During debug or fix mode, when an error message is not found anywhere in the codebase and the agent cannot form a hypothesis from code context alone.
+1. **PIVOT Escalation:** After 2 PIVOTs without conclusive evidence (see `references/pivot-protocol.md` Level 3).
+2. **Unfamiliar Error:** During validation, when an error message is not found anywhere in the codebase and the agent cannot form a hypothesis from code context alone.
 3. **Framework/API Uncertainty:** When the hypothesis requires knowledge of an external library's behavior that cannot be determined from the installed source or type definitions.
 
 ### User Opt-In
@@ -40,7 +40,7 @@ Good queries:
 - `webpack 5 circular dependency warning resolution`
 
 Bad queries:
-- `how to fix my code`
+- `validate my idea`
 - `codex-autoresearch stuck`
 - `MyProjectName search endpoint slow`
 
@@ -50,7 +50,7 @@ Search results are **hypotheses**, not solutions:
 
 1. Extract 1-3 candidate approaches from search results.
 2. For each candidate, formulate a testable hypothesis.
-3. Enter the normal iteration cycle: modify -> verify -> keep/discard.
+3. Enter the normal validation cycle: modify -> verify -> support/refute/inconclusive.
 4. Do not copy-paste solutions. Adapt the approach to the current codebase.
 5. If a search yields no useful results, log it and continue with local reasoning.
 
@@ -63,7 +63,7 @@ Search iterations use status `search`:
 ```tsv
 iteration	commit	metric	delta	guard	status	description
 12	-	-	-	-	search	[SEARCH] "asyncio pool exhaustion concurrent" -> found connection limit pattern
-13	d4e5f6g	38	-3	pass	keep	applied pool limit increase from search insight
+13	d4e5f6g	38	-3	pass	keep	[support] searched pooling hypothesis improved validation throughput
 ```
 
 ### Search Log
@@ -78,8 +78,6 @@ Optionally append to a search log section in the results TSV comments:
 ## Integration Points
 
 - **pivot-protocol.md:** Level 3 escalation triggers web search.
-- **debug-workflow.md:** Unfamiliar error pattern triggers search.
-- **fix-workflow.md:** Unfamiliar error during repair triggers search.
 - **interaction-wizard.md:** Wizard can ask about web search preference.
 - **results-logging.md:** New `search` status value.
 

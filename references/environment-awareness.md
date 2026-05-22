@@ -110,7 +110,7 @@ When generating a launch-ready config in plan mode:
 
 1. Run environment probes before suggesting verify/guard commands.
 2. Only suggest commands that are executable in the detected environment.
-3. If the goal requires unavailable resources, warn the user during the wizard phase.
+3. If the validation plan requires unavailable resources, warn the user during the wizard phase.
 4. Suggest resource-appropriate verify commands (e.g., smaller test datasets for low-RAM environments).
 
 ## Logging

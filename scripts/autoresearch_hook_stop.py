@@ -17,7 +17,7 @@ CONTINUATION_PROMPT = (
     "Do not rerun the wizard.\n"
     "If you just completed an experiment, record it before starting the next one.\n"
     "Do not emit a placeholder status update or repeat prior conclusions just because this hook fired.\n"
-    "Keep going until the goal is reached, the user stops you, the configured iteration cap is reached, or a true blocker appears."
+    "Keep going until the validation target is reached, the user stops you, the configured iteration cap is reached, or a true blocker appears."
 )
 FOLLOWUP_CONTINUATION_PROMPT = (
     "Continue the current autoresearch run.\n"

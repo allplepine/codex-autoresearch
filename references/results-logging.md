@@ -1,6 +1,6 @@
 # Results Logging
 
-This is the detailed reference for TSV/state semantics. During normal loop execution, treat `autoresearch_record_iteration.py` or `autoresearch_select_parallel_batch.py` as the authoritative closeout step instead of reopening this file.
+This is the detailed reference for TSV/state semantics. During research validation execution, treat `autoresearch_record_iteration.py` or `autoresearch_select_parallel_batch.py` as the authoritative closeout step instead of reopening this file.
 
 ## Workspace-Owned Results Directory
 
@@ -83,7 +83,11 @@ The first comment line declares the metric direction. Additional comment lines m
 ```text
 # environment: cpu=8 ram=16384MB gpu=A100(40GB) python=3.11 container=docker
 # metric_direction: lower
-# mode: loop
+# mode: research
+# idea: contrastive-loss-validation
+# hypothesis: contrastive-loss-improves-validation-f1
+# baseline_control: current-training-script-on-base-config
+# leakage_guard: train-split-only
 # run_tag: any-types-v2
 # parallel: serial
 # web_search: enabled
@@ -105,7 +109,7 @@ iteration	commit	metric	delta	guard	status	description
 | `delta` | `metric - retained_metric_before_row` |
 | `guard` | `pass`, `fail`, or `-` |
 | `status` | See Status Values below |
-| `description` | One-sentence explanation of the iteration. Structured keep/stop-gating labels may prefix the sentence as `[labels: foo, bar] ...` |
+| `description` | One-sentence explanation of the hypothesis/ablation and evidence. Include support/refute/inconclusive language. Structured keep/stop-gating labels may prefix the sentence as `[labels: foo, bar] ...` |
 
 For multi-repo runs, the TSV `commit` column still records the **primary repo** closeout commit. Per-repo commit provenance for companion repos lives in `state.json` (`state.last_repo_commits` and `state.last_trial_repo_commits`) so the primary audit trail stays compact while the JSON snapshot preserves cross-repo detail.
 
@@ -128,7 +132,7 @@ The metrics model is intentionally small:
 
 Do not use legacy `metric` / `op` / `value` fields, an `all` wrapper, or the `!=` operator.
 
-When `verify_format=scalar`, the verify command must emit a single numeric metric as its final non-empty output line. Do not heuristically scrape banner text, earlier lines, or arbitrary regex matches during the loop. If the command is noisy, tighten the verify command during setup so the final line is mechanically parseable.
+When `verify_format=scalar`, the verify command must emit a single numeric metric as its final non-empty output line. Do not heuristically scrape banner text, earlier lines, or arbitrary regex matches during execution. If the command is noisy, tighten the verify command during setup so the final line is mechanically parseable.
 
 When `verify_format=metrics_json`, the verify command must print a JSON object as its final non-empty output line. That JSON object is the metrics map used by the helpers. It must include `primary_metric_key` plus every metric referenced by `acceptance_criteria` and `required_keep_criteria`. Helpers must not synthesize missing metrics from the scalar primary metric in this mode.
 
@@ -136,7 +140,7 @@ When `verify_format=metrics_json`, the verify command must print a JSON object a
 
 ## Structured Labels For Keep / Stop Gating
 
-Some goals need more than a numeric threshold. Example: "Only retain improvements from the production path, and stop only when latency <= 120 ms and the retained keep uses the required production path and real backend."
+Some validation runs need more than a numeric threshold. Example: "Only retain evidence from the production path, and stop only when latency <= 120 ms and the retained keep uses the required production path and real backend."
 
 For those runs:
 
@@ -146,7 +150,7 @@ For those runs:
 - let the helper write a canonical TSV prefix like:
 
 ```text
-[labels: production-path, real-backend] optimized query path preserved real backend behavior
+[labels: production-path, real-backend] retained evidence used the required production path and real backend
 ```
 
 Would-be `keep` rows that miss `required_keep_labels` are mechanically downgraded to `discard` before they can update retained state.
@@ -164,11 +168,11 @@ This keeps causal or implementation-specific success criteria machine-checkable 
 | Status | Meaning |
 |--------|---------|
 | `baseline` | Initial measurement before any changes |
-| `keep` | Change improved the metric and passed guard |
-| `discard` | Change did not improve or failed guard |
+| `keep` | Evidence supports the registered hypothesis and passed guards |
+| `discard` | Evidence refuted the hypothesis, was inconclusive, unsupported, or failed guards |
 | `crash` | Verification crashed or produced an error |
 | `no-op` | No actual diff was produced |
-| `blocked` | Hard blocker encountered, loop stopped |
+| `blocked` | Hard blocker encountered, validation run stopped |
 | `refine` | Strategy adjustment within current approach (see `pivot-protocol.md`) |
 | `pivot` | Strategy abandoned, fundamentally new approach (see `pivot-protocol.md`) |
 | `search` | Web search performed for external knowledge (see `web-search-protocol.md`) |
@@ -180,10 +184,10 @@ This keeps causal or implementation-specific success criteria machine-checkable 
 # metric_direction: lower
 iteration	commit	metric	delta	guard	status	description
 0	a1b2c3d	14	0	-	baseline	current pytest failure count
-1	b2c3d4e	9	-5	pass	keep	reduce fixture startup overhead
-2	c3d4e5f	11	+2	-	discard	expand retries in API client
+1	b2c3d4e	9	-5	pass	keep	[support] contrastive loss improved macro F1 on validation split
+2	c3d4e5f	11	+2	-	discard	[refute] stronger augmentation reduced validation F1
 3	d4e5f6a	0	0	-	crash	refactor parser with bad import
-4	e5f6a7b	9	0	fail	discard	inline auth cache but break regression guard
+4	e5f6a7b	9	0	fail	discard	[inconclusive] retrieval temperature change failed leakage guard
 ```
 
 ## Parallel Batch Notation
@@ -208,9 +212,7 @@ These helper scripts live in the skill bundle. Do not confuse them with the targ
 Define `<skill-root>` as the directory that contains the loaded `SKILL.md`. In the common repo-local install this is usually `.agents/skills/codex-autoresearch`, so the exact command becomes `python3 .agents/skills/codex-autoresearch/scripts/...`.
 
 - `python3 <skill-root>/scripts/autoresearch_init_run.py --repo <primary_repo> --workspace-root <workspace_root> ...`
-  Initializes `autoresearch-results/results.tsv` and `autoresearch-results/state.json` together from the baseline measurement, writes canonical `context.json`, and writes repo-local pointers for every managed repo. Interactive supervised runs use the helper default session marker for compatibility. Multi-repo runs may add repeated `--repo-commit PATH=COMMIT` flags to persist companion-repo baseline provenance in JSON state. Runs with structural success criteria may add repeated `--required-keep-label LABEL` flags to protect retained state and repeated `--required-stop-label LABEL` flags so the supervisor only stops when the retained keep also carries those labels.
-- `python3 <skill-root>/scripts/autoresearch_set_session_mode.py --repo <repo> ...`
-  Legacy internal helper for synchronizing old interactive state. Normal supervised skill flow should not expose or call it.
+  Initializes `autoresearch-results/results.tsv` and `autoresearch-results/state.json` together from the baseline measurement, writes canonical `context.json`, and writes repo-local pointers for every managed repo. Research runs should pass the confirmed metadata when available: `--hypothesis`, `--expected-evidence`, `--baseline-control`, `--leakage-guard`, repeated `--ablation`, and `--repeat-policy`. Multi-repo runs may add repeated `--repo-commit PATH=COMMIT` flags to persist companion-repo baseline provenance in JSON state. Runs with structural success criteria may add repeated `--required-keep-label LABEL` flags to protect retained state and repeated `--required-stop-label LABEL` flags so the supervisor only stops when the retained keep also carries those labels.
 - `python3 <skill-root>/scripts/autoresearch_record_iteration.py ...`
   Appends one authoritative main iteration row and updates JSON state atomically. Multi-repo runs may add repeated `--repo-commit PATH=COMMIT` flags to update companion-repo commit provenance while the TSV `commit` column continues to track the primary repo. Repeated `--label LABEL` flags record structured keep/stop-gating labels on the attempted row and retained state.
 - `python3 <skill-root>/scripts/autoresearch_resume_check.py --repo <repo>`
@@ -224,7 +226,7 @@ Define `<skill-root>` as the directory that contains the loaded `SKILL.md`. In t
 
 - Create the log only after the baseline metric is known.
 - Record every completed experiment before starting the next one.
-- In normal loop execution, do that closeout through the bundled helper scripts rather than by hand.
+- In research validation execution, do that closeout through the bundled helper scripts rather than by hand.
 - Append after every iteration, including crashes, no-ops, refines, pivots, and searches.
 - Never commit the Results directory.
 - Treat `autoresearch-results/` and repo-local pointers as autoresearch-owned artifacts: leave them unstaged and ignore them when checking experiment scope.

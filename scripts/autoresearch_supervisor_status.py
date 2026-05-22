@@ -325,7 +325,7 @@ def stop_condition_gate_gap_reason(
     )
 
 
-def goal_reached_reason(
+def validation_target_reached_reason(
     payload: dict[str, Any],
     current_metric: Decimal,
     retained_labels: list[str],
@@ -363,9 +363,6 @@ def goal_reached_reason(
             return f"Retained result satisfies acceptance criteria{label_text}."
         return f"Configured stop condition is satisfied ({stop_status['description']}){label_text}."
 
-    if payload.get("mode") == "fix":
-        if direction == "lower" and current_metric == 0:
-            return "Fix mode reached zero remaining errors."
     return None
 
 
@@ -384,10 +381,15 @@ def determine_base_decision(
     iterations_cap = config.get("iterations")
     pivot_count = as_int(state.get("pivot_count"))
 
-    goal_reason = goal_reached_reason(payload, current_metric, retained_labels, retained_metrics)
-    if goal_reason is not None:
-        reasons.append(goal_reason)
-        return STOP, "goal_reached", "terminal", reasons
+    target_reason = validation_target_reached_reason(
+        payload,
+        current_metric,
+        retained_labels,
+        retained_metrics,
+    )
+    if target_reason is not None:
+        reasons.append(target_reason)
+        return STOP, "validation_target_reached", "terminal", reasons
     gate_gap_reason = stop_condition_gate_gap_reason(
         payload,
         current_metric,
@@ -415,7 +417,7 @@ def determine_base_decision(
         return NEEDS_HUMAN, "soft_blocked", "soft_blocked", reasons
 
     reasons.append(
-        f"Last recorded status is {last_status!r}; the loop remains resumable and should continue in a fresh Codex session."
+        f"Last recorded status is {last_status!r}; the validation run remains resumable and should continue in a fresh Codex session."
     )
     return RELAUNCH, "none", "turn_complete", reasons
 

@@ -198,7 +198,7 @@ def evaluate_resume_state(
     ):
         source_payload = state_payload or {}
         repaired_payload = build_state_payload(
-            mode=source_payload.get("mode", "loop"),
+            mode=source_payload.get("mode", "research"),
             run_tag=source_payload.get("run_tag") or parsed.metadata.get("run_tag"),
             config=source_payload.get("config", {"direction": direction}),
             summary=reconstructed,

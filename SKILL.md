@@ -1,20 +1,20 @@
 ---
 name: codex-autoresearch
-description: "Autonomous long-running iteration for Codex CLI. Use when the user wants Codex to plan or run an unattended improve-verify loop toward a measurable or verifiable outcome, especially for overnight runs; it also covers repeated debugging, fixing, security auditing, and ship-readiness workflows. Do not use for ordinary one-shot coding help or casual Q&A."
+description: "Research idea validation for Codex CLI. Use when the user proposes a new research, ML, algorithm, prompt, data-processing, benchmark, or experimental idea and wants Codex to turn it into an executable validation run with hypotheses, baselines/controls, ablations, leakage guards, repeated runs when needed, negative-result logging, and supervised autonomous execution. Do not use for ordinary one-shot coding help, generic bug fixing, deployment, or casual Q&A."
 ---
 
 # codex-autoresearch
 
-Autonomous goal-directed iteration. Modify -> Verify -> Keep/Discard -> Repeat.
+Autonomous research validation. Hypothesis -> Baseline/control -> Experiment -> Verify -> Evidence -> Repeat.
 
 ## When Activated
 
-1. Classify the request as `loop`, `plan`, `debug`, `fix`, `security`, or `ship`, and parse any inline config from the prompt.
-2. Load `references/core-principles.md` and `references/structured-output-spec.md`. For active execution modes (`loop`, `debug`, `fix`, `security`, `ship`), also load `references/runtime-hard-invariants.md`.
+1. Classify the request as `research` or `plan`, and parse any inline config from the prompt.
+2. Load `references/core-principles.md` and `references/structured-output-spec.md`. For active validation runs (`research`), also load `references/runtime-hard-invariants.md`.
 3. Load only the additional references the current situation needs:
    - `references/session-resume-protocol.md` for every interactive launch or existing-run control path, before deciding fresh vs resumable
    - `references/environment-awareness.md` before choosing hardware-sensitive work
-   - `references/interaction-wizard.md` for every new interactive launch (`loop`, `debug`, `fix`, `security`, `ship`) before execution begins
+   - `references/interaction-wizard.md` for every new interactive research launch before execution begins
    - `references/results-logging.md` only when debugging TSV/state semantics or helper behavior directly
 4. Load the selected mode workflow reference plus only the detailed cross-cutting protocols that actually apply (`lessons`, `pivot`, `health-check`, `parallel`, `web-search`, `hypothesis-perspectives`).
 5. Use the bundled helper scripts when stateful artifacts are involved. Resolve them relative to the loaded skill bundle root (`<skill-root>/scripts/...`), not the target repo root. In the common repo-local install this means commands such as `python3 .agents/skills/codex-autoresearch/scripts/autoresearch_init_run.py --repo <primary_repo> --workspace-root <workspace_root> ...`. New-run helpers (`autoresearch_init_run.py`) require both `--repo <primary_repo>` and `--workspace-root <workspace_root>`. Existing-run helpers (`autoresearch_resume_check.py`, `autoresearch_resume_prompt.py`, `autoresearch_supervisor_status.py`, `autoresearch_health_check.py`) require `--repo <primary_repo>` and resolve the workspace-owned Results directory from the repo-local pointer plus canonical context. `autoresearch_launch_gate.py --repo <primary_repo>` is the pre-wizard gate: it returns `fresh` for a clean repo with no prior artifacts and otherwise uses the same pointer/context recovery path.
@@ -22,41 +22,43 @@ Autonomous goal-directed iteration. Modify -> Verify -> Keep/Discard -> Repeat.
 
 ## Core Loop
 
-1. Read the relevant context.
-2. Define a mechanical success metric.
-3. Establish a baseline.
-4. Make one focused change.
+1. Register the hypothesis and expected evidence before changing code.
+2. Identify baseline/control and leakage guards.
+3. Establish the baseline measurement.
+4. Make one focused experimental change or ablation.
 5. Verify with a command.
-6. Keep or discard the change.
-7. Log the result.
-8. Repeat.
+6. Decide whether the evidence supports, refutes, or is inconclusive for the hypothesis.
+7. Log positive and negative results.
+8. Repeat only when the next experiment answers a concrete validation question.
 
 ## Modes
 
 | Mode | Purpose | Primary Reference |
 |------|---------|-------------------|
-| `loop` | Run the autonomous improvement loop | `references/loop-workflow.md` |
-| `plan` | Convert a vague goal into a launch-ready config | `references/plan-workflow.md` |
-| `debug` | Hunt bugs with evidence and hypotheses | `references/debug-workflow.md` |
-| `fix` | Iteratively reduce errors to zero | `references/fix-workflow.md` |
-| `security` | Run a structured security audit | `references/security-workflow.md` |
-| `ship` | Gate and execute a ship workflow | `references/ship-workflow.md` |
+| `research` | Validate a research idea with controlled experiments | `references/research-validation-workflow.md` |
+| `plan` | Convert a vague idea into a launch-ready validation plan | `references/plan-workflow.md` |
 
 Use `Mode: <name>` in the prompt to force a specific subworkflow.
 
 ## Required Config
 
-For the generic loop, the following fields are needed internally. Codex infers them from the user's natural language input and repo context, then fills gaps through guided conversation:
+For a research validation run, the following fields are needed internally. Codex infers them from the user's natural language input and repo context, then fills gaps through guided conversation:
 
-- `Goal`
+- `Idea`
+- `Hypothesis`
+- `Expected evidence`
+- `Baseline/control`
 - `Scope`
 - `Metric`
 - `Direction`
 - `Verify`
+- `Leakage guard`
 
 Optional but recommended:
 
 - `Guard`
+- `Ablations`
+- `Repeated runs / seeds`
 - `Iterations`
 - `Run tag`
 - `Stop condition`
@@ -65,11 +67,11 @@ For every new interactive run, use the wizard contract in `references/interactio
 
 ## Interactive Supervised Runs
 
-- Use `$codex-autoresearch` for interactive autoresearch launches and follow-up controls.
+- Use `$codex-autoresearch` for interactive research-validation launches and follow-up controls.
 - For a new interactive run, scan the repo, ask the confirmation questions, and start a single supervised run after the user explicitly approves worker-subagent execution with `go`.
-- Keep the operator-facing session in the current Codex thread, but delegate the active improve/verify loop to a worker subagent when model-visible subagent tools are available. The worker owns iteration, helper-script calls, commits, verification, and logging. The parent session monitors with concise milestone summaries and must not stream raw worker reasoning or re-run the worker's loop locally.
-- Give the worker the confirmed objective, scope, metric, direction, verify/guard commands, workspace root, primary repo, companion repos, rollback policy, and the runtime checklist. Tell the worker it is not alone in the codebase, must not revert unrelated edits, must use the bundled helper scripts, and must keep running until a stop condition, blocker, iteration cap, or user interrupt.
-- If subagent tools are not available, run the same loop directly in the current session and say that the context-saving supervised path is unavailable.
+- Keep the operator-facing session in the current Codex thread, but delegate the active validation run to a worker subagent when model-visible subagent tools are available. The worker owns hypothesis registration, helper-script calls, commits, verification, negative-result logging, and conclusion summaries. The parent session monitors with concise milestone summaries and must not stream raw worker reasoning or re-run the worker's work locally.
+- Give the worker the confirmed idea, hypothesis, expected evidence, baseline/control, scope, metric, direction, verify/guard commands, leakage guard, ablations, repeated-run policy, workspace root, primary repo, companion repos, rollback policy, and runtime checklist. Tell the worker it is not alone in the codebase, must not revert unrelated edits, must use the bundled helper scripts, and must keep running until a validation stop condition, blocker, iteration cap, or user interrupt.
+- If subagent tools are not available, run the same validation protocol directly in the current session and say that the context-saving supervised path is unavailable.
 - When model-visible goal tools are available, use the official Codex goal only as the parent thread's continuation anchor: after launch approval, call `get_goal`; reuse a matching non-complete current goal, or call `create_goal` with the confirmed objective when no goal exists. If an existing goal cannot be reused, surface it in the confirmation summary before launch and do not create a second one. Mark the goal complete with `update_goal` only when the autoresearch stop condition is actually satisfied.
 - Interactive continuation uses only the supervised worker path.
 - Treat the repo where the run starts as the **primary repo**. Single-repo runs are the default. If the task truly spans multiple codebases, declare **companion repos** explicitly and give each repo its own scope instead of stuffing absolute paths into one mixed scope string.
@@ -79,25 +81,24 @@ For every new interactive run, use the wizard contract in `references/interactio
 
 ## Hard Rules
 
-1. **Ask before act for new interactive launches.** For `loop`, `debug`, `fix`, `security`, and `ship`, scan the repo, run the session-resume launch gate, and ask at least one repo-grounded confirmation round before the run starts. Load and follow `references/interaction-wizard.md` for every new interactive launch.
-2. **Use the supervised interactive path after launch approval.** In interactive modes, once the user says "go" (or equivalent: "start", "launch", or any clear approval), keep the parent session available for monitoring and delegate the loop to a worker subagent when subagent tools are available.
-3. **Never ask after the user approves the run.** Once the user has approved `go`, do not pause mid-run to ask anything -- not for clarification, not for confirmation, not for permission. If ambiguity appears during the loop, apply best practices and keep going. The user may be asleep.
+1. **Ask before act for new interactive launches.** For `research`, scan the repo, run the session-resume launch gate, and ask at least one repo-grounded confirmation round before the run starts. Load and follow `references/interaction-wizard.md` for every new interactive launch.
+2. **Use the supervised interactive path after launch approval.** In interactive modes, once the user says "go" (or equivalent: "start", "launch", or any clear approval), keep the parent session available for monitoring and delegate the validation run to a worker subagent when subagent tools are available.
+3. **Never ask after the user approves the run.** Once the user has approved `go`, do not pause mid-run to ask anything -- not for clarification, not for confirmation, not for permission. If ambiguity appears during the validation run, apply best practices and keep going. The user may be asleep.
 4. Read all in-scope files before the first write.
-5. One focused change per iteration.
+5. One focused experimental variable per iteration unless a factorial design is explicitly approved before launch.
 6. Mechanical verification only.
 7. After launch approval, scoped per-iteration trial commits are part of the approved run; do not ask separately before creating them. Create a trial commit before verification only when every managed repo's worktree stays within that repo's declared scope or autoresearch-owned artifacts, remove generated verify/guard byproducts, apply the approved keep/discard closeout, then record the current clean HEAD commit(s). The worker or direct runner must honor the same scope-aware gate before every trial commit.
 8. Never stage or revert unrelated user changes.
 9. Keep run artifacts uncommitted and never stage them.
 10. Use the rollback strategy approved during setup. In a dedicated experiment branch/worktree with pre-launch approval, `git reset --hard HEAD~1` is allowed; otherwise use `git revert --no-edit HEAD`.
-11. Discard gains under 1% that add disproportionate complexity.
+11. Do not chase metric gains without evidence for the registered hypothesis. Treat unsupported gains, regressions, null results, crashes, and inconclusive measurements as valid research outcomes and log them.
 12. Unlimited runs by default unless the user explicitly asks for `Iterations: N`.
-13. External ship actions (deploy, publish, release) must be confirmed during the pre-launch wizard phase. If not confirmed before launch, skip them and log as blocker.
-14. Do not ask "should I continue?". Once launched, keep the supervised run active until interrupted or a hard blocker / configured terminal condition appears (see `references/autonomous-loop-protocol.md` Stop Conditions for the full definition).
-15. During active execution, keep `references/runtime-hard-invariants.md` as the primary runtime checklist. Core persistent artifacts are `autoresearch-results/results.tsv`, `autoresearch-results/state.json`, `autoresearch-results/context.json`, and `autoresearch-results/lessons.md`.
-16. When stuck (3+ consecutive discards), use the PIVOT/REFINE escalation ladder from `references/pivot-protocol.md` instead of brute-force retrying.
-17. Prefer the bundled helper scripts over hand-editing `autoresearch-results/results.tsv`, `autoresearch-results/state.json`, `autoresearch-results/context.json`, or other run artifacts. Always call them via the skill-bundle path (`<skill-root>/scripts/...`); never call bare `scripts/autoresearch_*.py` from the target repo root unless the skill bundle itself is actually installed there.
-18. After any context compaction event (the CLI warns about thread length and compaction), re-read `references/runtime-hard-invariants.md`, `references/core-principles.md`, and the selected mode workflow from disk before the next iteration. Do not rely on memory of those documents after compaction.
-19. Every 10 iterations, perform the Protocol Fingerprint Check defined in `references/runtime-hard-invariants.md`. Use Phase 8.7 of `references/autonomous-loop-protocol.md` only for the detailed re-anchoring procedure. If any item fails, re-read all loaded runtime docs from disk before continuing.
+13. Do not ask "should I continue?". Once launched, keep the supervised run active until interrupted or a hard blocker / configured terminal condition appears (see `references/autonomous-loop-protocol.md` Stop Conditions for the full definition).
+14. During active execution, keep `references/runtime-hard-invariants.md` as the primary runtime checklist. Core persistent artifacts are `autoresearch-results/results.tsv`, `autoresearch-results/state.json`, `autoresearch-results/context.json`, and `autoresearch-results/lessons.md`.
+15. When results are repeatedly inconclusive, use the PIVOT/REFINE escalation ladder from `references/pivot-protocol.md` to change validation strategy rather than brute-force optimizing.
+16. Prefer the bundled helper scripts over hand-editing `autoresearch-results/results.tsv`, `autoresearch-results/state.json`, `autoresearch-results/context.json`, or other run artifacts. Always call them via the skill-bundle path (`<skill-root>/scripts/...`); never call bare `scripts/autoresearch_*.py` from the target repo root unless the skill bundle itself is actually installed there.
+17. After any context compaction event (the CLI warns about thread length and compaction), re-read `references/runtime-hard-invariants.md`, `references/core-principles.md`, and the selected mode workflow from disk before the next iteration. Do not rely on memory of those documents after compaction.
+18. Every 10 iterations, perform the Protocol Fingerprint Check defined in `references/runtime-hard-invariants.md`. Use Phase 8.7 of `references/autonomous-loop-protocol.md` only for the detailed re-anchoring procedure. If any item fails, re-read all loaded runtime docs from disk before continuing.
 
 ## Structured Output
 
@@ -105,8 +106,8 @@ Every mode should follow `references/structured-output-spec.md`.
 
 Minimum requirement:
 
-- for interactive and user-facing modes, print a setup summary before the loop starts,
-- for interactive and user-facing modes, print progress updates during the loop,
+- for interactive and user-facing modes, print a setup summary before the validation run starts,
+- for interactive and user-facing modes, print progress updates during the validation run,
 - for interactive and user-facing modes, print a completion summary at the end,
 - write the mode-specific output files when the workflow defines an output directory.
 
@@ -114,34 +115,30 @@ Minimum requirement:
 
 ```text
 $codex-autoresearch
-I want to get rid of all the `any` types in my TypeScript code
+I have a new retrieval reranking idea and want to validate whether it improves recall without leaking labels
 ```
 
 ```text
 $codex-autoresearch
-I want to make our API faster but I don't know where to start
+Test whether adding a contrastive loss improves validation F1 on this training script
 ```
 
 ```text
 $codex-autoresearch
-pytest is failing, 12 tests broken after the refactor
+Run an ablation to see whether the new data augmentation actually helps
 ```
 
-Codex scans the repo, asks targeted questions to clarify your intent, then starts a supervised run after you approve. You never need to write key-value config.
+Codex scans the repo, asks targeted questions to clarify the hypothesis, controls, metrics, guards, and repeat policy, then starts a supervised validation run after you approve. You never need to write key-value config.
 
 ## References
 
 - `references/core-principles.md`
 - `references/runtime-hard-invariants.md`
-- `references/loop-workflow.md`
+- `references/research-validation-workflow.md`
 - `references/autonomous-loop-protocol.md`
 - `references/interaction-wizard.md`
 - `references/structured-output-spec.md`
 - `references/plan-workflow.md`
-- `references/debug-workflow.md`
-- `references/fix-workflow.md`
-- `references/security-workflow.md`
-- `references/ship-workflow.md`
 - `references/results-logging.md`
 - `references/lessons-protocol.md`
 - `references/pivot-protocol.md`

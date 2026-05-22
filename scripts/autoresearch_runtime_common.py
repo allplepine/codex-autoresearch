@@ -124,7 +124,7 @@ def manifest_config_from_args(args: argparse.Namespace) -> dict[str, Any]:
     verify_format = getattr(args, "verify_format", "scalar")
     primary_metric_key = getattr(args, "primary_metric_key", None) or args.metric_name
     config = {
-        "session_mode": "background",
+        "session_mode": None,
         "workspace_root": str(workspace_root),
         "artifact_root": str(workspace_artifact_root(workspace_root)),
         "primary_repo": str(primary_repo),
@@ -146,6 +146,19 @@ def manifest_config_from_args(args: argparse.Namespace) -> dict[str, Any]:
         "parallel_mode": args.parallel_mode,
         "web_search": args.web_search,
     }
+    research_config = {
+        "hypothesis": getattr(args, "hypothesis", None),
+        "expected_evidence": getattr(args, "expected_evidence", None),
+        "baseline_control": getattr(args, "baseline_control", None),
+        "leakage_guard": getattr(args, "leakage_guard", None),
+        "repeat_policy": getattr(args, "repeat_policy", None),
+    }
+    for key, value in research_config.items():
+        if value not in (None, "", []):
+            config[key] = value
+    ablations = getattr(args, "ablation", [])
+    if ablations:
+        config["ablations"] = list(ablations)
     acceptance_criteria = normalize_criteria_config(
         parse_optional_json_argument(
             getattr(args, "acceptance_criteria", None),

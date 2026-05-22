@@ -40,11 +40,12 @@ def lessons_path_from_results(results_path: Path) -> Path:
 
 
 def format_lesson_context(config: dict[str, Any]) -> str:
-    goal = str(config.get("goal", "")).strip() or "-"
+    idea = str(config.get("goal", "")).strip() or "-"
+    hypothesis = str(config.get("hypothesis", "")).strip() or "-"
     scope = str(config.get("scope", "")).strip() or "-"
     metric = str(config.get("metric", "")).strip() or "-"
     direction = str(config.get("direction", "")).strip() or "-"
-    return f"goal={goal}; scope={scope}; metric={metric}; direction={direction}"
+    return f"idea={idea}; hypothesis={hypothesis}; scope={scope}; metric={metric}; direction={direction}"
 
 
 def format_iteration_ref(run_tag: str | None, iteration: int | str | None) -> str:
@@ -67,7 +68,7 @@ def fallback_insight(outcome: str, description: str) -> str:
     if description.strip():
         return description.strip()
     if outcome == "keep":
-        return "This strategy improved the retained metric and is worth reusing in similar contexts."
+        return "This strategy produced retained supporting evidence and is worth reusing in similar contexts."
     if outcome == "pivot":
         return "This strategy family should be deprioritized in similar contexts."
     return "Capture the main lesson from this iteration."

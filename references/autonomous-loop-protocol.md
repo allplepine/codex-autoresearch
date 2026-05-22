@@ -1,43 +1,49 @@
-# Autonomous Loop Protocol
+# Autonomous Research Validation Protocol
 
-This is the detailed reference for the generic Codex research loop.
+This is the detailed reference for supervised research idea validation.
 
-During active execution, keep `runtime-hard-invariants.md` plus the selected mode workflow in memory first. Use this file when you need the full setup, recovery, artifact, or escalation details behind the loop.
+During active execution, keep `runtime-hard-invariants.md` plus `research-validation-workflow.md` in memory first. Use this file when you need the full setup, recovery, artifact, or escalation details behind the validation run.
 
-## Loop Modes
+## Run Length
 
-- `unbounded`: default. If the user does not specify `Iterations`, keep iterating until interrupted or another terminal condition is reached (goal/stop condition satisfied, soft-blocker handoff, or hard blocker).
+- `unbounded`: default. If the user does not specify `Iterations`, keep iterating until interrupted or another terminal condition is reached (hypothesis supported/refuted, evidence budget exhausted, soft-blocker handoff, or hard blocker).
 - `bounded`: when the user explicitly sets `Iterations: N`.
 
 ## Required Inputs
 
-Before entering the loop, confirm these are known:
+Before entering the validation run, confirm these are known:
 
-- `Goal`
+- `Idea`
+- `Hypothesis`
+- `Expected evidence`
+- `Baseline/control`
 - `Scope`
 - `Metric`
 - `Direction`
 - `Verify`
+- `Leakage guard`
 
 Optional:
 
 - `Guard`
+- `Ablations`
+- `Repeated runs / seeds`
 - `Iterations`
 - `Run tag`
 - `Stop condition`
-- `Required keep labels` (when the run should only retain results from a specific mechanism, path, backend, or root-cause signal)
-- `Required stop labels` (when the goal has a structural or causal success requirement, not just a numeric threshold)
-- `Verify format` — `scalar` (default) or `metrics_json`; use `metrics_json` when the verify command outputs a JSON object with multiple metrics as its final line
-- `Primary metric key` — which key in the metrics JSON to use as the TSV primary metric; defaults to the metric name
-- `Acceptance criteria` — list of `{metric_key, operator, target}` thresholds the retained result must satisfy before the run can stop (see `references/results-logging.md` Metrics And Acceptance Contract)
-- `Required keep criteria` — list of `{metric_key, operator, target}` hard gates every retained result must satisfy to enter `keep` state; use when some metrics must never regress regardless of primary metric improvement
+- `Required keep labels` (when the run should only retain evidence from a specific mechanism, path, backend, or root-cause signal)
+- `Required stop labels` (when the validation conclusion requires a structural or causal signal, not just a numeric threshold)
+- `Verify format` - `scalar` (default) or `metrics_json`; use `metrics_json` when the verify command outputs a JSON object with multiple metrics as its final line
+- `Primary metric key` - which key in the metrics JSON to use as the TSV primary metric; defaults to the metric name
+- `Acceptance criteria` - list of `{metric_key, operator, target}` thresholds the retained result must satisfy before the run can stop (see `references/results-logging.md` Metrics And Acceptance Contract)
+- `Required keep criteria` - list of `{metric_key, operator, target}` hard gates every retained result must satisfy to enter `keep` state; use when some metrics must never regress regardless of primary evidence
 - `Rollback policy` (required before launch if destructive rollback may be used)
 
-For every new interactive loop, use the wizard contract from `references/interaction-wizard.md` to scan the repo, clarify with the user, and confirm the launch-ready config before the loop begins.
+For every new interactive research run, use the wizard contract from `references/interaction-wizard.md` to scan the repo, clarify with the user, and confirm the launch-ready validation plan before execution begins.
 
 ## Phase 0: Preconditions
 
-Fail fast if the loop would be unsafe. Clarify first if the intent is unclear.
+Fail fast if the validation run would be unsafe. Clarify first if the intent is unclear.
 
 ### Session Resume Check
 
@@ -88,31 +94,31 @@ Run environment detection per `references/environment-awareness.md`:
 
 ### Ask-Before-Act
 
-Before starting any interactive loop:
+Before starting any interactive validation run:
 
 1. Scan the repo to understand context.
 2. Ask at least one round of clarifying questions based on what you found -- confirm scope, metric, verify command, duration (until interrupted vs bounded), and any rollback approval needed for unattended execution.
    - If the task spans multiple repos, confirm one primary repo plus any companion repos, each with an explicit per-repo scope.
 3. Present a plain-language summary for the user to approve.
-4. Only start the loop after the user explicitly says "go" / "start" / "launch" or equivalent.
+4. Only start the validation run after the user explicitly says "go" / "start" / "launch" or equivalent.
 
-Do not silently infer every field and start iterating. The user should approve the goal, success signal, scope, and verification before the loop begins.
+Do not silently infer every field and start iterating. The user should approve the hypothesis, baseline/control, success/refutation signal, scope, leakage guard, and verification before execution begins.
 
 **Two-phase boundary:** Ask questions before launch. After launch, keep working until a stop condition, blocker, or user interrupt.
 
 - Before the user says "go", confirm the interactive launch summary and make worker-subagent authorization explicit. Do not ask for a run-mode choice; interactive runs use the supervised path.
-- The parent Codex session stays available for monitoring, uses the official Codex goal as the thread-level continuation anchor when goal tools are available, and delegates the active loop to a worker subagent when subagent tools are available.
-- The worker calls the shared helper scripts directly and keeps the same improve/verify/log protocol. The parent monitors concise milestone summaries and does not duplicate the loop locally.
+- The parent Codex session stays available for monitoring, uses the official Codex goal as the thread-level continuation anchor when goal tools are available, and delegates the active validation run to a worker subagent when subagent tools are available.
+- The worker calls the shared helper scripts directly and keeps the same hypothesis/verify/log protocol. The parent monitors concise milestone summaries and does not duplicate the validation run locally.
 - The confirmed launch summary may describe either a single primary repo or a primary repo plus companion repos with separate scopes.
 - Interactive continuation uses only the supervised worker path.
 - If subagent tools are unavailable, run directly in the current session and state that the context-saving supervised worker path is unavailable.
-- After launch, do not pause for clarification, confirmation, or permission. If ambiguity appears mid-loop, apply best practices, log the reasoning, and keep iterating.
+- After launch, do not pause for clarification, confirmation, or permission. If ambiguity appears mid-run, apply best practices, log the reasoning, and keep iterating.
 
 ### Safety Checks
 
 1. Confirm the repo is under git if the workflow depends on commits.
 2. Inspect `git status --porcelain`.
-3. If unrelated user changes are present, do not start the commit/revert loop.
+3. If unrelated user changes are present, do not start the commit/revert cycle.
 4. Confirm the scope resolves to real files.
 5. Confirm the verify command exists and is plausible for this repo.
 6. If a guard exists, confirm it is a pass/fail command.
@@ -132,7 +138,7 @@ They may stay uncommitted between iterations and across resumes, but they must n
 
 ### Dirty Worktree Rule
 
-The loop may commit and revert repeatedly. That is only safe when the workspace is isolated.
+The validation run may commit and revert repeatedly. That is only safe when the workspace is isolated.
 
 If `git status --porcelain` is non-empty **during Phase 0 (before launch)**:
 
@@ -142,10 +148,10 @@ If `git status --porcelain` is non-empty **during Phase 0 (before launch)**:
 - If the user confirms the changes are part of the experiment, continue.
 - If the user says no, suggest `plan` mode or a clean branch/worktree.
 
-If the worktree becomes dirty **after launch** (external modification mid-loop):
+If the worktree becomes dirty **after launch** (external modification mid-run):
 
 - Log a hard blocker: "External changes detected in worktree. Stopping to prevent data loss."
-- Do not ask the user (two-phase boundary). Stop the loop and report.
+- Do not ask the user (two-phase boundary). Stop the validation run and report.
 
 Never absorb unrelated user edits into experiment commits.
 
@@ -178,12 +184,13 @@ Record:
 - a short baseline description.
 
 Immediately after the baseline is known, initialize the run artifacts with `<skill-root>/scripts/autoresearch_init_run.py --repo <primary_repo> --workspace-root <workspace_root>`.
+Pass the confirmed research metadata when available: `--hypothesis`, `--expected-evidence`, `--baseline-control`, `--leakage-guard`, repeated `--ablation`, and `--repeat-policy`.
 
-If the baseline itself fails unpredictably, do not enter the optimization loop. Either repair the setup first or switch to `debug` or `fix` mode.
+If the baseline/control itself fails unpredictably, do not enter active validation. Repair the measurement setup first or stop with a blocker.
 
-## Phase 3: Ideate
+## Phase 3: Register The Validation Question
 
-Choose one concrete hypothesis. When parallel mode is active (see `references/parallel-experiments-protocol.md`), generate N hypotheses instead of one.
+Choose one concrete hypothesis or ablation question. When parallel mode is active (see `references/parallel-experiments-protocol.md`), generate N independent validation questions only when each can run without resource contention.
 
 ### Hypothesis Filtering
 
@@ -197,33 +204,35 @@ Apply the four-lens framework from `references/hypothesis-perspectives.md` when 
 - **Historian:** what do past results and lessons say?
 - **Minimalist:** simpler version possible?
 
-Skip perspectives for obvious, mechanical fixes.
+Skip perspectives for obvious, mechanical validation steps.
 
 ### Lessons Consultation
 
 Consult `autoresearch-results/lessons.md` (see `references/lessons-protocol.md`):
 - Prefer strategies that succeeded in similar contexts.
 - Avoid strategies that consistently failed.
-- Adapt successful strategies from related goals.
+- Adapt successful strategies from related validation runs.
 
 Good hypotheses:
 
 - "Reduce retries from 5 to 2 to lower latency without changing behavior."
 - "Add tests for uncovered auth edge cases to raise coverage."
 - "Inline the hot path to reduce allocations."
+- "Disable the augmentation to isolate whether it contributes to validation F1."
 
 Bad hypotheses:
 
 - "Refactor several modules and see what happens."
 - "Clean things up."
+- "Try anything that improves the leaderboard."
 
 Priority order:
 
-1. stabilize flaky setup,
-2. exploit the last successful direction,
-3. try an untested idea informed by lessons and perspectives,
-4. simplify while preserving the metric,
-5. attempt a larger directional change when small ideas stall.
+1. stabilize flaky measurement setup,
+2. test the smallest ablation that isolates the idea,
+3. test the next plausible mechanism implied by prior evidence,
+4. repeat or seed-check only when noise makes the decision unreliable,
+5. pivot validation strategy when the current evidence cannot answer the hypothesis.
 
 ## Phase 4: Modify
 
@@ -232,8 +241,10 @@ Make one focused change within scope.
 Rules:
 
 - the change should fit in one sentence,
+- the change should correspond to the registered hypothesis or ablation,
 - do not edit guard artifacts merely to satisfy the guard,
 - do not broaden scope mid-iteration. If a change requires out-of-scope files, abandon the hypothesis, log the limitation, and try a different approach that stays within scope.
+- do not touch files protected by the leakage guard.
 
 ## Phase 5: Trial Commit
 
@@ -262,7 +273,7 @@ Commit failure policy:
 - if the retry still fails, or a pre-commit hook / repository policy rejects the diff, treat the attempt as `crash`; fix only trivial issues if the hypothesis is still valid, retry at most 2 quick times, otherwise restore a clean worktree with the approved rollback strategy and log `crash`;
 - if the repository itself is broken (permissions, corrupt index, disk full), treat it as a hard blocker.
 
-If the workspace is not safe for commits, log a hard blocker and stop the loop. Do not ask -- report the situation in the completion summary.
+If the workspace is not safe for commits, log a hard blocker and stop the validation run. Do not ask -- report the situation in the completion summary.
 
 ## Phase 6: Verify
 
@@ -279,9 +290,9 @@ Metric parsing contract:
 
 - if `verify_format=scalar`, the final non-empty verify output line must be a single numeric scalar parseable as the metric value;
 - if `verify_format=metrics_json`, follow the final-line JSON contract in `references/results-logging.md`;
-- do not guess from banner text, earlier lines, or arbitrary regex scraping during the loop; if output is noisy, tighten the verify command during setup instead;
+- do not guess from banner text, earlier lines, or arbitrary regex scraping during execution; if output is noisy, tighten the verify command during setup instead;
 - if verify output is unparseable, rerun verify once only to rule out transient truncation or shell noise; if the second run is still unparseable, treat the attempt as `crash`;
-- if the baseline itself cannot be parsed, do not launch the loop; fix the verify command first or stop with a blocker.
+- if the baseline itself cannot be parsed, do not launch; repair the verify command first or stop with a blocker.
 
 Timeout rule:
 
@@ -291,11 +302,11 @@ Timeout rule:
 
 Guard is a separate gate from Verify, not part of it. The execution sequence is strictly: Phase 6 (Verify) -> Phase 6.5 (Guard) -> Phase 7 (Decide).
 
-If `Guard` is defined, run it after a metric improvement.
+If `Guard` is defined, run it after verify and before deciding whether the evidence is usable.
 
 Interpretation:
 
-- verify answers "did the target metric improve?"
+- verify answers "what evidence did the experiment produce?"
 - guard answers "did the change break anything important?"
 
 If guard fails:
@@ -306,26 +317,30 @@ If guard fails:
 
 ## Phase 7: Decide
 
-### Keep
+### Keep / Supported
 
 Keep the commit when:
 
-- the metric improved in the requested direction,
+- the evidence supports the registered hypothesis or ablation question,
 - the guard passed or no guard exists,
+- the leakage guard passed,
 - and the complexity cost is justified.
 
-### Discard
+### Discard / Refuted Or Inconclusive
 
 Discard the iteration when:
 
-- the metric stayed flat or regressed,
+- the evidence refutes the hypothesis,
+- the measurement is inconclusive under the confirmed repeat policy,
 - the guard failed,
+- the leakage guard failed,
 - or the change added too much complexity for too little gain.
 
-#### Simplicity Override
+#### Evidence Override
 
-- Marginal improvement (< 1%) combined with significant complexity increase = discard.
-- Metric unchanged but code becomes simpler = keep.
+- A metric gain that does not support the registered mechanism can be logged as unsupported instead of kept.
+- A null result is a valid negative result; do not hide it by searching for unrelated metric gains.
+- A simpler implementation with unchanged metric can be retained only if the confirmed validation question included simplification.
 
 Rollback follows the strategy approved during setup:
 
@@ -389,22 +404,22 @@ These helpers keep two key semantics consistent:
 For bounded runs:
 
 - stop after `Iterations` completes,
-- or earlier if the goal is achieved and the user asked to stop on success.
+- or earlier if the hypothesis is supported/refuted under the confirmed evidence rule.
 
 For unbounded runs:
 
 - Do not ask "should I continue?" or pause for clarification after launch. If something is unclear, apply best practices and keep going.
-- Continue iterating until the goal is reached, the user explicitly interrupts, the configured iteration cap is reached, a true blocker appears, or the run reaches the documented soft-blocker handoff.
-- If you run out of obvious ideas, revisit the results log for patterns, try combinations, or attempt bolder changes. Pausing to ask is not an option.
+- Continue iterating until the hypothesis is supported, refuted, still inconclusive after the configured budget, the user explicitly interrupts, the configured iteration cap is reached, a true blocker appears, or the run reaches the documented soft-blocker handoff.
+- If you run out of validation questions, revisit the results log for evidence gaps. Do not switch to unrelated metric chasing.
 
 ### PIVOT / REFINE Stuck Recovery
 
 Replace the simple "5 discards -> re-read" with the graduated escalation system from `references/pivot-protocol.md`:
 
-- **3 consecutive discards -> REFINE:** Adjust within current strategy. Consult lessons, change parameters or target files, log as `refine`.
-- **5 consecutive discards -> PIVOT:** Abandon current strategy entirely. Re-read everything, choose a fundamentally different approach, log as `pivot`.
-- **2 PIVOTs without improvement -> Web Search:** Escalate to web search per `references/web-search-protocol.md` (if available and not disabled).
-- **3 PIVOTs without improvement -> Soft Blocker:** Print a warning, stop the current run, and report that human review / broader scope / a better metric is needed.
+- **3 consecutive inconclusive/refuted attempts -> REFINE:** Adjust within current validation strategy. Consult lessons, change parameters or target files, log as `refine`.
+- **5 consecutive inconclusive/refuted attempts -> PIVOT:** Abandon current validation strategy entirely. Re-read everything, choose a fundamentally different validation approach, log as `pivot`.
+- **2 PIVOTs without conclusive evidence -> Web Search:** Escalate to web search per `references/web-search-protocol.md` (if available and not disabled).
+- **3 PIVOTs without conclusive evidence -> Soft Blocker:** Print a warning, stop the current run, and report that human review / broader scope / a better metric is needed.
 
 A single `keep` resets all escalation counters to zero.
 
@@ -450,7 +465,7 @@ If any fingerprint item fails:
 1. Re-read `references/runtime-hard-invariants.md`, `references/core-principles.md`, and the selected mode workflow from disk.
 2. Re-read `references/autonomous-loop-protocol.md` only if the missing item concerns detailed escalation, recovery, or health-check behavior.
 3. In the next TSV row's description, include the `[RE-ANCHOR]` tag to mark that a re-anchoring event occurred.
-4. Continue the loop from Phase 9.
+4. Continue the validation run from Phase 9.
 
 ### Compaction Counter
 
@@ -459,16 +474,16 @@ Track the number of context compaction events observed during the session:
 - **0 compactions (default):** Fingerprint check every 10 iterations.
 - **1 compaction:** Fingerprint check every 5 iterations.
 - **2 compactions:** Run the fingerprint check every iteration until stability returns. Re-read protocol files immediately on any failure.
-- **3+ compactions:** Soft drift warning. Keep the loop running, run the fingerprint check every iteration, and re-anchor from disk on any failure.
+- **3+ compactions:** Soft drift warning. Keep the validation run active, run the fingerprint check every iteration, and re-anchor from disk on any failure.
 
 ## Progress Reporting
 
 Every 5 iterations and at completion, summarize:
 
-- baseline vs best metric,
+- baseline/control vs retained evidence metric,
 - keep/discard/crash counts,
 - the last few statuses,
-- the next likely direction.
+- the next likely validation question.
 
 ## Stop Conditions
 
@@ -483,7 +498,7 @@ A **hard blocker** is any condition that makes continued iteration unsafe or mea
 - verification cannot produce a mechanical metric,
 - the environment is too flaky to trust the results,
 - the user interrupts,
-- or the loop requires external actions not approved during the pre-launch wizard.
+- or the run requires external actions not approved during the pre-launch wizard.
 
 Stop immediately if any hard blocker appears. Do not ask the user -- log the blocker in the completion summary.
 

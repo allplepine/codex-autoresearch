@@ -1,288 +1,152 @@
 # Interaction Wizard Contract
 
-This file defines how Codex should collect missing information for `codex-autoresearch`.
-
-## Goal
-
-The user says one sentence. Codex figures out the rest through guided conversation. The user should never need to know field names, write key-value pairs, or understand the internal configuration format.
+This file defines how Codex should collect missing information for research-validation runs.
 
 When this file mentions `<skill-root>`, it means the directory containing the loaded `SKILL.md`.
 
-**Clarify First.** For new interactive launches, scan the repo and ask at least one repo-grounded confirmation round before starting the loop. This confirmation round is mandatory. The user should stay in control without learning the internal config shape.
+## Goal
+
+The user may provide only a rough research idea. Codex should scan the repo, infer the experimental setup, and ask a short confirmation round before launch. The user should not need to know internal field names.
 
 ## Global Rules
 
-1. Accept natural language input. The user's first message may be as short as "improve my test coverage" or "make training faster".
-2. Scan the repo before asking anything -- read directory structure, key config files, scripts, and code relevant to the user's goal.
-3. Ask at least one round of clarifying questions before launch. Show what you found and what you plan to do, then let the user confirm or correct it.
-4. Guide the user through conversation. Ask one question at a time (or batch tightly related ones). Each question must be specific and grounded in what you found in the repo.
-5. Propose concrete defaults with every question. Let the user confirm or correct.
-6. Aim to finish clarification in 1 to 3 rounds. Ask more only when a real blocker remains; avoid turning setup into a questionnaire.
-7. Present a structured confirmation summary before launching (see Confirmation Format below).
-8. Do not collapse confirmation into a bare "go" prompt. First show a short repo-grounded summary of the goal, metric, verify path, and next step.
-9. The user should never see raw field names (Goal, Scope, Metric, Direction, Verify, Guard). Translate everything into natural conversation.
-10. After the user approves the summary, start the supervised run directly from the same skill entrypoint. Keep the parent session available for monitoring and delegate active iteration to a worker subagent when model-visible subagent tools are available. Do not tell the user to switch to a different wrapper command.
-11. End the confirmation summary with a short runtime checklist that reinforces execution order: baseline first, then initialize artifacts, and always log a completed experiment before starting the next one.
-12. After the launch gate allows a fresh or confirmed interactive launch, check `python3 <skill-root>/scripts/autoresearch_hooks_ctl.py status`. If setup is missing, stale, disabled, or untrusted, run `python3 <skill-root>/scripts/autoresearch_hooks_ctl.py install` before clarification continues. Treat this as internal preparation; keep setup details out of the user-facing summary unless a setup failure blocks launch. Use model-visible goal tools when they are actually available.
-13. Capture the first status response's `startup_tip_needed` value before any install/update. If true, show one product-facing startup tip in the confirmation summary: "For the smoothest long-running runs, start Codex with `codex --enable goals --enable hooks --dangerously-bypass-approvals-and-sandbox`." Do not expose status field names or claim to have detected the exact shell command.
+1. Accept natural language ideas such as "test whether this augmentation helps" or "validate this reranking idea".
+2. Scan the repo before asking anything: read training/eval scripts, configs, datasets/splits metadata, benchmark scripts, metrics, and relevant model/code paths.
+3. Ask at least one repo-grounded confirmation round before launch.
+4. Keep clarification to 1-3 rounds unless a real blocker remains.
+5. Always confirm hypothesis, baseline/control, metric, verify command, leakage guard, ablation boundary, and repeat policy.
+6. Do not require statistical decision rules. Use repeats/seeds only when the metric is noisy, the repo already supports them, or the user asks.
+7. Present a structured confirmation summary before launching.
+8. End the confirmation summary with a clear call to action that explicitly authorizes a supervised worker subagent.
+9. After launch approval, start from the same skill entrypoint. The parent session monitors; the worker subagent performs the validation run.
+10. After the launch gate allows a fresh or confirmed launch, check `python3 <skill-root>/scripts/autoresearch_hooks_ctl.py status`. If setup is missing, stale, disabled, or untrusted, run `python3 <skill-root>/scripts/autoresearch_hooks_ctl.py install` before clarification continues. Treat setup details as internal preparation unless a setup failure blocks launch.
 
 ## Clarification Protocol
 
 ### Step 1: Scan
 
-Read the repo to understand what exists -- source files, training scripts, config files, test suites, build systems, CI configs, etc. Check manifest files (`package.json`, `requirements.txt`, `pyproject.toml`, `go.mod`, etc.) to understand the stack before asking about it.
+Identify:
 
-After the primary repo is known, run `python3 <skill-root>/scripts/autoresearch_launch_gate.py --repo <primary_repo>` and follow `session-resume-protocol.md`: resume when it is safe, use the mini-wizard when confirmation is needed, or continue the normal wizard only for a fresh launch.
+- code path touched by the idea,
+- existing baseline/control command,
+- evaluation command and metric output,
+- dataset split or benchmark boundary,
+- seed/repeat support,
+- risks of leakage or benchmark contamination,
+- whether the idea needs an ablation rather than a direct replacement.
 
-When the flow continues into a fresh or confirmed interactive launch, run the setup check from the global rules. If setup work is needed, do it silently before asking the next clarification question. Do not infer current-session goal-tool availability from saved setup state; use model-visible goal tools when they are actually available. Keep the first startup-tip decision from the initial status check, mention the tip once in the confirmation summary when needed, then continue the normal wizard.
+After the primary repo is known, run:
 
-When model-visible goal tools are available, call `get_goal` before the confirmation summary. If an existing official goal cannot be reused for the proposed autoresearch objective, include that conflict in the summary before launch.
+```bash
+python3 <skill-root>/scripts/autoresearch_launch_gate.py --repo <primary_repo>
+```
 
-### Step 2: Guided Questions (required)
+Follow `session-resume-protocol.md` before deciding fresh vs resumable.
 
-Ask at least one round of questions, even when the goal seems obvious. Use the optional question appendix below only when you need help choosing the shortest useful question set for the situation.
+### Step 2: Guided Questions
 
-| What you need | Bad (skipping) | Good (confirming) |
-|---------------|----------------|-------------------|
-| Scope | Silently pick src/ | "I see `src/models/` and `src/api/` -- should I touch the model layer only, or the whole src?" |
-| Metric | Silently pick line coverage | "Your test suite reports line coverage (currently 58%). Should I track that, or do you care more about branch coverage?" |
-| Target | Assume "as high as possible" | "Coverage is at 58% now. What's your target -- 80%? 90%? Or just push as high as I can?" |
-| Verify command | Silently pick pytest | "I can run `pytest --cov=src` to measure coverage. Does that work, or do you use a different runner?" |
-| Guard | Skip it | "Should I make sure `tsc --noEmit` still passes after each change?" |
-| Duration | Assume unlimited | "Want me to run 10 iterations as a test, or keep iterating until you interrupt me?" |
+Ask only what is blocking launch. Good research-validation questions include:
+
+- "I see `eval.py` reports macro F1 on `data/val.json`. Should the baseline be the current model on that split?"
+- "Your idea changes both retrieval scoring and prompt format. Should I ablate retrieval first, prompt second, or approve a combined test?"
+- "I found seed support via `--seed`. Should I run 3 seeds for noisy validation, or one run as a smoke validation?"
+- "The benchmark has a held-out test file. Should I guard against touching it and use validation only?"
+- "If the metric improves but the ablation suggests the mechanism is wrong, should I keep investigating rather than mark the idea supported?"
 
 Rules:
-- Each round must add new information. Never ask the same question twice.
-- Prefer multiple-choice questions over open-ended ones to reduce user effort.
-- If the user's answer introduces new ambiguity, ask about that specifically.
-- If the goal is still unclear after 3 rounds, propose the most reasonable interpretation and let the user approve or edit.
-- If the user says the experiment spans multiple repos, identify one **primary repo** for run-control artifacts and list any additional **companion repos** separately, each with its own scope.
-- Default the `workspace_root` candidate from the launch context. If Codex was started inside a git repo, use that repo root as the default candidate. If Codex was started outside a git repo, use the current launch directory as the default candidate.
-- Do not silently widen `workspace_root` to a parent directory just because nearby sibling repos, old `autoresearch-results/`, or a broader filesystem layout exist. Only widen to a broader shared workspace when the user explicitly confirms that intent.
-- Do not replace the structured summary with a single-line "go?" prompt. The user should see what you inferred from the repo before they are asked to approve launch.
-- If the chosen `workspace_root` is outside the launch context or outside the primary repo, call that out explicitly in the confirmation summary and show the resulting `Results directory`.
-- If clarification changes the `workspace_root`, rerun the launch gate with the confirmed workspace root before the final summary.
-- When the user explicitly describes multiple goals or says they cannot prioritize into a single metric, suggest `verify_format=metrics_json` with a primary metric for the TSV plus acceptance criteria on the others. If the repo scan reveals a verify script that outputs structured multi-metric data, mention it as an option but let the user decide whether they want multi-metric tracking or just a single primary metric. Do not proactively suggest multi-metric when the user's goal is clearly single-metric.
 
-### Step 3: Confirm (Structured Format)
+- Never ask for novelty judgment as part of the mechanical run.
+- Do not silently choose the test set as the decision target when a validation split exists.
+- When repeated runs are expensive, default to one baseline and one treatment run unless noise is already evident.
+- If leakage risk cannot be controlled, do not launch; report the blocker.
 
-Before launching, present a structured confirmation summary. The user should be able to scan it in seconds and reply with one word.
+### Step 3: Confirmation Summary
 
-#### English Format
+Use the user's language. Keep it compact.
 
-```
+```text
 **Confirmed**
-- Target: eliminate `any` types in src/**/*.ts
+- Idea: add contrastive loss to improve validation F1
+- Hypothesis: contrastive loss improves macro F1 without using validation labels in training
+- Baseline/control: current training script on `configs/base.yaml`
 - Results directory: `./autoresearch-results/`
-- Metric: `any` occurrence count (current: 47), direction: lower
-- Verify: `grep -r ":\s*any" src/ --include="*.ts" | wc -l`
-- Guard: `tsc --noEmit` must still pass
-- Also keeping: hard_conflicts == 0, oversized_rooms <= 100 *(only when multi-metric)*
+- Metric: validation macro F1, direction: higher
+- Verify: `python train.py --config configs/base.yaml && python eval.py --split val`
+- Leakage guard: do not edit `data/val*` or test labels; train split only
+- Ablation: contrastive loss only; no data augmentation changes
+- Repeat policy: 3 seeds if a single run changes F1 by < 1 point, otherwise one run
 
 **Need to confirm**
-- Run until all gone, or cap at N iterations?
-- Any other safety checks beyond tsc?
+- Any stricter guard beyond the validation split boundary?
 
 **Runtime checklist**
-- Baseline first, then initialize results/state.
-- Log every completed experiment before the next one starts.
-- Use helper scripts for authoritative row/state updates.
+- Register hypothesis before each experiment.
+- Baseline/control first, then initialize results/state.
+- Log support, refutation, and inconclusive/negative results.
 
 **Next step**
 - Reply "go" to authorize a supervised worker subagent to start, or tell me what to change.
 ```
 
-#### Format Rules
+Format rules:
 
-1. Always use the user's language -- Chinese prompt gets Chinese headings, English gets English.
-2. Keep the confirmation scannable -- aim for under 15 lines.
-3. Show concrete numbers (current metric value, file count, etc.) so the user can sanity-check.
-4. The "Need to confirm" section should only contain genuine blockers, not padding.
-5. End with a clear call to action that makes worker-subagent authorization explicit.
-6. Do not ask for a run-mode choice. Interactive runs use the supervised path.
-7. Keep the base template minimal. Add optional blocks only when they are genuinely needed.
-8. Only show "Required keep labels" and/or "Required stop labels" when the goal truly has structural success requirements beyond the numeric target.
-9. Keep the runtime checklist short. It exists to reinforce execution order, not to restate the whole protocol.
-10. Do not include setup details in the normal confirmation summary. Mention them only when a setup failure blocks launch.
-11. When the run tracks multiple metrics, show the additional thresholds in plain language (e.g., "Also keeping: hard_conflicts == 0") rather than exposing internal field names. Omit this line entirely for single-metric runs.
-12. Always show the `Results directory`. If it is the default `./autoresearch-results/` under the launch context, the relative form is fine. If it lives outside the launch context or outside the primary repo, show the absolute path and make that widening explicit before launch.
-13. If the startup tip is shown, keep it outside the confirmed run config so users do not confuse it with an internal requirement for this specific run.
-
-The user replies "go", "start", "launch", or corrects something. No field names, no YAML, no structured input required.
+1. Always show the Results directory.
+2. Always show the leakage guard or explicitly say why none is needed.
+3. Always show ablation boundary and repeat policy.
+4. Do not show raw internal field names unless the user already used them.
+5. Keep "Need to confirm" for genuine blockers only.
 
 ## Launch Handoff
 
-When the user replies with launch approval (`go`, `start`, `launch`, or an equivalent clear confirmation):
+When the user replies with launch approval:
 
-1. By handoff time, the setup check should already be complete. Keep setup details out of the user-facing handoff unless a setup failure blocks launch.
-2. When model-visible goal tools are available, align the official Codex goal before initialization: call `get_goal`, reuse a matching non-complete current goal, or call `create_goal` with the confirmed objective when no goal exists.
-3. If an existing official goal cannot be reused, do not create another goal; surface that conflict in the confirmation summary before launch and let the user resolve it there.
-4. Start a worker subagent when subagent tools are available; in Codex tool terms, call `spawn_agent` with `agent_type=worker` and `fork_context=true`. Give it the confirmed run config, the workspace paths, the selected workflow references, and the runtime checklist. The worker must initialize `autoresearch-results/results.tsv`, `autoresearch-results/state.json`, and `autoresearch-results/context.json` after the baseline is known, then keep logging every completed experiment before starting the next one.
-5. The parent session monitors the worker with concise milestone summaries. Do not stream raw worker reasoning, do not duplicate the loop locally, and do not ask the user to continue.
-6. If subagent tools are unavailable, run the same loop directly in the current session and state that the context-saving supervised worker path is unavailable.
-7. Mark the official Codex goal complete only when the configured autoresearch success condition is actually met; hard blockers and user interruptions are not complete goals.
-8. Do not ask the user to rerun a shell wrapper command just to continue.
-
-If the chosen path is **Fresh start** after recovery analysis, archive prior persistent run artifacts through the fresh-start flow before the supervised run starts. Legacy repo-root artifacts are not recovered into the new schema; the user must choose fresh start or move/archive them.
-
-## Optional Question Appendix
-
-Use this appendix only when you need help choosing the shortest useful question set. Pick 1-3 questions that are actually blocking. Prefer multiple-choice to reduce user effort.
-
-### Scope & Boundaries
-
-- "I see both `src/models/` and `src/api/` -- should I optimize the model layer only, or the full src?"
-- "There are 3 training scripts here (`train_gpt2.py`, `train_llama.py`, `train_vit.py`) -- which one?"
-- "Should I only modify test files, or can I also refactor the source code to make it more testable?"
-- "I can keep the Results directory in `./autoresearch-results/` for this current launch context, or widen to a shared parent workspace if this run truly spans multiple repos. Which do you want?"
-
-### Metric & Target
-
-- "Your test suite reports line coverage (currently 58%). Should I track that, or branch coverage?"
-- "What's your target -- 80%? 90%? Or just push as high as I can?"
-- "I see MFU is logged in the training output. Are we targeting a specific number, or just higher-is-better?"
-- "The verify command currently measures response time. Should I track p50, p95, or p99?"
-- "If I hit the target with the wrong mechanism or path, should I keep going? I can require structured keep labels so only the right mechanism can enter retained state, and structured stop labels so the run only stops when the retained keep matches the mechanism you care about."
-- "You mentioned several goals. Should I pick one as the primary metric and set hard thresholds on the others, or would you prefer a single combined score?"
-
-### Verification & Guard
-
-- "I can run `pytest --cov=src` to measure coverage. Does that work, or do you use a different runner?"
-- "Should I make sure `tsc --noEmit` still passes after each change, so we don't introduce type errors?"
-- "The build takes 3 minutes. Should I use it as the guard, or is there a faster smoke test?"
-- "I found `npm test` and `npm run lint` -- should I guard with both, or just tests?"
-- If a command fails at baseline and is part of the user's repair target, present it as the verify/final acceptance check, not as guard. Guard is only for baseline-passing regression checks.
-
-### Duration & Strategy
-
-- "Want me to run 10 iterations as a test, or let it go overnight?"
-- "Should this be an unattended run that keeps going until you interrupt it, or a bounded trial run?"
-- "Should I focus on quick wins first, or go straight for the biggest impact?"
-- "If I get stuck after several attempts, should I try bolder architectural changes, or stop and report?"
-- "If failed iterations need rollback, may I use destructive rollback inside a dedicated experiment branch/worktree so I do not have to stop and ask mid-run?"
-
-### Parallel & Search
-
-- "I can test multiple ideas at the same time using parallel experiments. Want me to try up to 3 hypotheses per round? (I detected {N} GPUs/NPUs -- each experiment would need how many?)"
-- "If I get stuck, can I search the web for solutions? (results are always verified mechanically before applying)"
-
-### Debug-Specific
-
-- "Can you describe what happens? (A: error message, B: wrong output, C: intermittent failure, D: performance degradation)"
-- "When did this start? (A: after a specific change, B: always been there, C: not sure)"
-- "If I find the cause, should I also try to fix it, or just report?"
-- "Do you have a screenshot, flame graph, or error image I can look at? (paste or drag an image if so)"
-
-### Fix-Specific
-
-- "I see 12 failing tests. Should I fix all of them, or focus on a specific module first?"
-- "Some failures look related. Should I fix the root cause first, even if it's harder?"
-- "Should I preserve backward compatibility, or is breaking the old API acceptable?"
-
-### Security-Specific
-
-- "Should I audit the whole codebase, or just the API layer?"
-- "Focus on which threats? (A: injection/XSS, B: auth/access control, C: data exposure, D: all)"
-- "Report only, or should I also fix critical findings?"
-- "Do you have an architecture diagram or network topology image I can reference? (paste or drag an image if so)"
-
-### Ship-Specific
-
-- "Dry run first, or go live directly?"
-- "Is this a PR, a deployment, or a release?"
-- "How long should I monitor after shipping? (A: 5 min, B: 15 min, C: skip)"
+1. Ensure setup check is complete.
+2. Align the official Codex goal when model-visible goal tools are available.
+3. Start a worker subagent when subagent tools are available; call `spawn_agent` with `agent_type=worker` and `fork_context=true`.
+4. Give the worker the confirmed idea, hypothesis, baseline/control, metric, direction, verify command, leakage guard, ablation boundary, repeat policy, workspace paths, selected references, and runtime checklist.
+5. Tell the worker to use the helper scripts for `results.tsv`, `state.json`, and `context.json`, and to log negative and inconclusive outcomes.
+6. The parent session monitors concise milestone summaries only. Do not duplicate the validation run locally.
+7. If subagent tools are unavailable, run the same protocol directly in the current session and state that the context-saving worker path is unavailable.
 
 ## Internal Field Mapping
 
-The wizard internally maps the conversation to these fields (the user never sees them):
+The wizard internally maps the conversation to:
 
-### loop
-
-- Goal -- extracted from user's description
-- Scope -- inferred from repo + user's answers
-- Metric -- proposed by Codex, confirmed by user
-- Direction -- inferred from goal ("improve" = higher, "reduce/eliminate" = lower)
-- Verify -- Codex proposes a command based on repo tooling
-- Guard (optional) -- Codex suggests if there's a regression risk and the command already passes at baseline
-- Iterations (optional) -- asked only if user wants bounded run
-- Required keep labels (optional) -- ask only when only a specific mechanism, path, backend, or root-cause signal should be allowed into retained state
-- Required stop labels (optional) -- ask only when the run should stop on a specific mechanism, path, backend, or root-cause signal in addition to the metric target
-- Verify format (optional) -- default `scalar`; use `metrics_json` when the goal involves multiple metrics and the verify command outputs a JSON object as its final line
-- Primary metric key (optional) -- which key in the metrics JSON to track in the TSV; defaults to the metric name
-- Acceptance criteria (optional) -- list of `{metric_key, operator, target}` thresholds that the retained result must satisfy before the run can stop; only configure when the goal has multi-metric success requirements
-- Required keep criteria (optional) -- list of `{metric_key, operator, target}` hard gates that every retained result must satisfy to enter `keep` state (e.g., `hard_conflicts == 0`); use when some metrics must never regress regardless of primary metric improvement
-- Rollback (optional) -- ask only if destructive rollback may be needed for unattended execution; otherwise default to non-destructive revert
-- Parallel (optional) -- ask if environment supports it (CPU >= 4, RAM >= 8GB)
-- Web search (optional) -- ask if user wants web search when stuck
-
-### plan
-
-- Goal -- user's description
-- Everything else is generated by plan mode
-
-### debug
-
-- Symptom -- user's description of the problem
-- Scope -- inferred from symptom + repo structure
-- After-action -- ask: "If I find the cause, should I also try to fix it?"
-
-### fix
-
-- Target -- inferred from user's description ("tests are failing" -> test runner)
-- Scope -- inferred from repo structure
-- Guard (optional) -- suggested only for baseline-passing regression checks; failing target commands are verify/final acceptance
-
-### security
-
-- Scope -- inferred or asked ("the whole API layer, or just authentication?")
-- Focus -- extracted from user's concern or asked
-- Action -- ask: "Report only, or should I also fix critical issues?"
-
-### ship
-
-- Shipment type -- auto-detected or asked
-- Target -- inferred or asked
-- Scope -- inferred from the target artifact, release files, deployment config, and any checklist-related files that may need edits
-- Metric -- checklist readiness score (or another mechanical pass-count score)
-- Direction -- `higher`
-- Verify -- Codex proposes a command or script that evaluates the checklist and emits the readiness score
-- Ship action -- ask "Dry run first, or ship directly?" only when an external ship action is in scope
-- Monitor -- ask how long to monitor after ship when relevant
-
-### Execution Policy
-
-Interactive supervised runs use the current Codex session permissions.
+- Idea: the user's proposed research idea.
+- Hypothesis: what should be true if the idea works.
+- Expected evidence: what observed outcome would support or refute the hypothesis.
+- Baseline/control: the current system, previous method, config, or no-treatment condition.
+- Scope: files/configs/data-processing paths allowed to change.
+- Metric: primary validation metric.
+- Direction: higher/lower.
+- Verify: command that produces the metric.
+- Leakage guard: files, splits, labels, benchmark data, or prompt/eval materials that must not be touched.
+- Ablation: the single variable being tested, or approved factorial design.
+- Repeat policy: number of seeds/runs or condition that triggers repeats.
+- Guard: pass/fail regression check.
+- Iterations: validation budget.
 
 ## Validation Rules
 
-Before launching, silently validate:
+Before launch, silently validate:
 
 - scope resolves to real files,
-- metric is mechanical (a command can produce a number),
-- verify command is runnable,
-- guard command is pass/fail only and already passes at baseline,
-- iterations is a positive integer when provided.
+- baseline/control can be measured,
+- verify command is runnable and emits a parseable metric,
+- leakage guard is enforceable,
+- ablation boundary is specific enough,
+- repeat policy is feasible in the environment,
+- guard command is pass/fail only and already passes at baseline.
 
-If validation fails, tell the user in plain language what went wrong and suggest a fix. Do not show raw error formats.
+If validation fails, explain the blocker in plain language and suggest the smallest fix.
 
-## Launch Rules
+## Mini-Wizard
 
-- `plan` mode does not edit code unless the user explicitly says to launch.
-- `ship` mode never performs side effects without explicit confirmation.
-- After the user says "go" / "start" / "launch", begin immediately. Do not ask again.
-- **Two-phase boundary:** all questions happen before launch. Once the loop starts, keep running without more user questions; if ambiguity appears mid-loop, apply best practices, log the reasoning, and continue until a stop condition or true blocker appears.
+When `session-resume-protocol.md` detects a prior run with valid `state.json` but inconsistent TSV:
 
-## Mini-Wizard (Session Resume)
-
-When `session-resume-protocol.md` detects a prior run with a valid `autoresearch-results/state.json` but inconsistent TSV (Recovery Priority 2), the full wizard is replaced by a single-round mini-wizard:
-
-1. Show what was detected:
-   - Prior run tag, iteration count, best metric, and last status from the JSON state.
-   - The specific inconsistency reported by `<skill-root>/scripts/autoresearch_resume_check.py` (for example retained-metric mismatch, missing main row, or stale counters).
-2. Ask exactly one question with two choices:
-   - **Resume:** use the JSON `config` as the authoritative source. Briefly confirm scope, metric, and verify command in a single confirmation block.
-   - **Fresh start:** archive old artifacts with `.prev` suffixes and proceed with the full wizard.
-3. If the user chooses to resume, present a condensed confirmation summary (same format as Step 3 above but sourced from JSON `config` instead of repo scanning).
-4. The user replies "go" and the supervised loop starts immediately from `autoresearch-results/results.tsv` + `autoresearch-results/state.json`. No further rounds.
-
-The mini-wizard respects the same two-phase boundary: all questions happen before launch.
+1. Show prior run tag, iteration count, best/current metric, and last status.
+2. Ask exactly one question:
+   - resume from JSON state, or
+   - start fresh and archive old artifacts.
+3. If resuming, show a condensed confirmation summary from JSON config.
+4. The user replies "go" and the supervised validation run resumes immediately.
