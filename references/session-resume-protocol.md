@@ -136,7 +136,7 @@ Prefer the bundled helper script over ad hoc TSV/JSON parsing:
 python3 <skill-root>/scripts/autoresearch_resume_check.py --repo /path/to/repo
 ```
 
-Here `<skill-root>` is the directory containing the loaded `SKILL.md`. In the common repo-local install this is usually `.agents/skills/codex-autoresearch`.
+Here `<skill-root>` is the directory containing the loaded `SKILL.md`. In the common repo-local install this is usually `.agents/skills/research-validation-skill`.
 
 It reconstructs retained state from the TSV, tolerates legacy suffix rows from older runs, and returns one of four decisions:
 

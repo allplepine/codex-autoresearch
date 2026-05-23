@@ -71,7 +71,7 @@ def build_runtime_prompt(
     record_script = script_root / "autoresearch_record_iteration.py"
     supervisor_script = script_root / "autoresearch_supervisor_status.py"
     lines = [
-        "$codex-autoresearch",
+        "$research-validation-skill",
         "This repo is managed by the autoresearch runtime controller.",
         "The human already completed the confirmation phase for this run.",
         f"Use {launch_path} as the authoritative launch manifest.",

@@ -80,7 +80,7 @@ python3 <skill-root>/scripts/autoresearch_init_run.py --repo <primary_repo> --wo
 
 This writes the baseline TSV row (`iteration = 0`) and the matching JSON snapshot in one step.
 
-Here `<skill-root>` is the directory containing the loaded `SKILL.md`. In the common repo-local install this is usually `.agents/skills/codex-autoresearch`, so the exact command becomes `python3 .agents/skills/codex-autoresearch/scripts/...`.
+Here `<skill-root>` is the directory containing the loaded `SKILL.md`. In the common repo-local install this is usually `.agents/skills/research-validation-skill`, so the exact command becomes `python3 .agents/skills/research-validation-skill/scripts/...`.
 
 Bundled helpers expose `--force` only as an internal maintenance override for tests or deliberate manual recovery. Normal skill flow should prefer explicit fresh-start archival instead of using `--force` to bypass legacy-layout or existing-artifact protection.
 

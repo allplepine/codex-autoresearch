@@ -8,7 +8,7 @@ Convert a vague idea into a concrete validation plan that can be launched as `Mo
 
 ## Trigger
 
-- `$codex-autoresearch Mode: plan`
+- `$research-validation-skill Mode: plan`
 - "help me validate this idea"
 - "turn this research idea into an experiment"
 - "what should I run to test this?"

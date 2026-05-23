@@ -1,5 +1,5 @@
 ---
-name: codex-autoresearch
+name: research-validation-skill
 description: "Research idea validation for Codex CLI. Use when the user proposes a new research, ML, algorithm, prompt, data-processing, benchmark, or experimental idea and wants Codex to turn it into an executable validation run with hypotheses, baselines/controls, ablations, leakage guards, repeated runs when needed, negative-result logging, and supervised serial execution in the current Codex session. Do not use for ordinary one-shot coding help, generic bug fixing, deployment, or casual Q&A."
 ---
 
@@ -17,7 +17,7 @@ Autonomous research validation. Hypothesis -> Baseline/control -> Experiment -> 
    - `references/interaction-wizard.md` for every new interactive research launch before execution begins
    - `references/results-logging.md` only when debugging TSV/state semantics or helper behavior directly
 4. Load the selected mode workflow reference plus only the detailed cross-cutting protocols that actually apply (`lessons`, `pivot`, `health-check`, `web-search`, `hypothesis-perspectives`). Active runs are serial; do not load or use the parallel experiments protocol during normal execution.
-5. Use the bundled helper scripts when stateful artifacts are involved. Resolve them relative to the loaded skill bundle root (`<skill-root>/scripts/...`), not the target repo root. In the common repo-local install this means commands such as `python3 .agents/skills/codex-autoresearch/scripts/autoresearch_init_run.py --repo <primary_repo> --workspace-root <workspace_root> ...`. New-run helpers (`autoresearch_init_run.py`) require both `--repo <primary_repo>` and `--workspace-root <workspace_root>`. Existing-run helpers (`autoresearch_resume_check.py`, `autoresearch_resume_prompt.py`, `autoresearch_supervisor_status.py`, `autoresearch_health_check.py`) require `--repo <primary_repo>` and resolve the workspace-owned Results directory from the repo-local pointer plus canonical context. `autoresearch_launch_gate.py --repo <primary_repo>` is the pre-wizard gate: it returns `fresh` for a clean repo with no prior artifacts and otherwise uses the same pointer/context recovery path.
+5. Use the bundled helper scripts when stateful artifacts are involved. Resolve them relative to the loaded skill bundle root (`<skill-root>/scripts/...`), not the target repo root. In the common repo-local install this means commands such as `python3 .agents/skills/research-validation-skill/scripts/autoresearch_init_run.py --repo <primary_repo> --workspace-root <workspace_root> ...`. New-run helpers (`autoresearch_init_run.py`) require both `--repo <primary_repo>` and `--workspace-root <workspace_root>`. Existing-run helpers (`autoresearch_resume_check.py`, `autoresearch_resume_prompt.py`, `autoresearch_supervisor_status.py`, `autoresearch_health_check.py`) require `--repo <primary_repo>` and resolve the workspace-owned Results directory from the repo-local pointer plus canonical context. `autoresearch_launch_gate.py --repo <primary_repo>` is the pre-wizard gate: it returns `fresh` for a clean repo with no prior artifacts and otherwise uses the same pointer/context recovery path.
 6. Execute the selected workflow exactly as written and produce the required structured output and artifacts.
 
 ## Core Loop
@@ -67,7 +67,7 @@ For every new interactive run, use the wizard contract in `references/interactio
 
 ## Interactive Supervised Runs
 
-- Use `$codex-autoresearch` for interactive research-validation launches and follow-up controls.
+- Use `$research-validation-skill` for interactive research-validation launches and follow-up controls.
 - For a new interactive run, scan the repo, ask the confirmation questions, and start a single supervised run in the current Codex session after the user explicitly approves execution with `go`.
 - Keep the operator-facing session and the active validation run in the current Codex thread. Do not delegate to another agent or spawn worker agents. The current session owns hypothesis registration, helper-script calls, commits, verification, negative-result logging, milestone summaries, and conclusion summaries.
 - Carry forward the confirmed idea, hypothesis, expected evidence, baseline/control, scope, metric, direction, verify/guard commands, leakage guard, ablations, repeated-run policy, workspace root, primary repo, companion repos, rollback policy, and runtime checklist. Keep running until a validation stop condition, blocker, iteration cap, or user interrupt.
@@ -114,17 +114,17 @@ Minimum requirement:
 ## Quick Start
 
 ```text
-$codex-autoresearch
+$research-validation-skill
 I have a new retrieval reranking idea and want to validate whether it improves recall without leaking labels
 ```
 
 ```text
-$codex-autoresearch
+$research-validation-skill
 Test whether adding a contrastive loss improves validation F1 on this training script
 ```
 
 ```text
-$codex-autoresearch
+$research-validation-skill
 Run an ablation to see whether the new data augmentation actually helps
 ```
 

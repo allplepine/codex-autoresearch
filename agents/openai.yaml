@@ -2,7 +2,7 @@ interface:
   display_name: "Research Validation"
   short_description: "Validate research ideas with controlled experiments"
   brand_color: "#2563EB"
-  default_prompt: "Use $codex-autoresearch to validate a research idea with baselines, controls, ablations, and logged evidence."
+  default_prompt: "Use $research-validation-skill to validate a research idea with baselines, controls, ablations, and logged evidence."
 
 policy:
   allow_implicit_invocation: false

@@ -201,7 +201,7 @@ Prefer the bundled helper scripts for stateful artifact updates:
 
 These helper scripts live in the skill bundle. Do not confuse them with the target repo's own `scripts/` directory.
 
-Define `<skill-root>` as the directory that contains the loaded `SKILL.md`. In the common repo-local install this is usually `.agents/skills/codex-autoresearch`, so the exact command becomes `python3 .agents/skills/codex-autoresearch/scripts/...`.
+Define `<skill-root>` as the directory that contains the loaded `SKILL.md`. In the common repo-local install this is usually `.agents/skills/research-validation-skill`, so the exact command becomes `python3 .agents/skills/research-validation-skill/scripts/...`.
 
 - `python3 <skill-root>/scripts/autoresearch_init_run.py --repo <primary_repo> --workspace-root <workspace_root> ...`
   Initializes `autoresearch-results/results.tsv` and `autoresearch-results/state.json` together from the baseline measurement, writes canonical `context.json`, and writes repo-local pointers for every managed repo. Research runs should pass the confirmed metadata when available: `--hypothesis`, `--expected-evidence`, `--baseline-control`, `--leakage-guard`, repeated `--ablation`, and `--repeat-policy`. Multi-repo runs may add repeated `--repo-commit PATH=COMMIT` flags to persist companion-repo baseline provenance in JSON state. Runs with structural success criteria may add repeated `--required-keep-label LABEL` flags to protect retained state and repeated `--required-stop-label LABEL` flags so the supervisor only stops when the retained keep also carries those labels.
