@@ -57,13 +57,6 @@ Extended statuses for stuck recovery and search:
 [iteration N] [SEARCH] "query" -> found approach -> metric result -> search
 ```
 
-Parallel batch notation:
-
-```text
-[iteration Na] [PARALLEL worker-a] hypothesis -> metric result -> keep (SELECTED)
-[iteration Nb] [PARALLEL worker-b] hypothesis -> metric result -> discard
-```
-
 ## Mode Output Templates
 
 ### loop
@@ -174,4 +167,4 @@ ship/{YYMMDD}-{HHMM}-{slug}/
 - When helper-managed artifacts include timestamps (for example lessons entries or runtime/state metadata), they should use UTC.
 - Workspace-owned artifact metadata should use the documented canonical paths. `context.json` and state config fields store absolute paths so resume and status helpers can resolve the active run without cwd guessing.
 - Final summaries should reference every artifact created.
-- Parallel workers use `[PARALLEL worker-{id}]` prefix.
+- Active runs use normal iteration lines only. Preserve legacy prefixes only when summarizing pre-existing historical rows.

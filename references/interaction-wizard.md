@@ -21,7 +21,7 @@ When this file mentions `<skill-root>`, it means the directory containing the lo
 7. Present a structured confirmation summary before launching (see Confirmation Format below).
 8. Do not collapse confirmation into a bare "go" prompt. First show a short repo-grounded summary of the goal, metric, verify path, and next step.
 9. The user should never see raw field names (Goal, Scope, Metric, Direction, Verify, Guard). Translate everything into natural conversation.
-10. After the user approves the summary, start the supervised run directly from the same skill entrypoint. Keep the parent session available for monitoring and delegate active iteration to a worker subagent when model-visible subagent tools are available. Do not tell the user to switch to a different wrapper command.
+10. After the user approves the summary, start the supervised run directly from the same skill entrypoint. The current Codex session performs the active iteration and reports concise milestone summaries. Do not tell the user to switch to a different wrapper command.
 11. End the confirmation summary with a short runtime checklist that reinforces execution order: baseline first, then initialize artifacts, and always log a completed experiment before starting the next one.
 12. After the launch gate allows a fresh or confirmed interactive launch, check `python3 <skill-root>/scripts/autoresearch_hooks_ctl.py status`. If setup is missing, stale, disabled, or untrusted, run `python3 <skill-root>/scripts/autoresearch_hooks_ctl.py install` before clarification continues. Treat this as internal preparation; keep setup details out of the user-facing summary unless a setup failure blocks launch. Use model-visible goal tools when they are actually available.
 13. Capture the first status response's `startup_tip_needed` value before any install/update. If true, show one product-facing startup tip in the confirmation summary: "For the smoothest long-running runs, start Codex with `codex --enable goals --enable hooks --dangerously-bypass-approvals-and-sandbox`." Do not expose status field names or claim to have detected the exact shell command.
@@ -89,7 +89,7 @@ Before launching, present a structured confirmation summary. The user should be 
 - Use helper scripts for authoritative row/state updates.
 
 **Next step**
-- Reply "go" to authorize a supervised worker subagent to start, or tell me what to change.
+- Reply "go" to authorize the supervised run to start in this session, or tell me what to change.
 ```
 
 #### Format Rules
@@ -98,8 +98,8 @@ Before launching, present a structured confirmation summary. The user should be 
 2. Keep the confirmation scannable -- aim for under 15 lines.
 3. Show concrete numbers (current metric value, file count, etc.) so the user can sanity-check.
 4. The "Need to confirm" section should only contain genuine blockers, not padding.
-5. End with a clear call to action that makes worker-subagent authorization explicit.
-6. Do not ask for a run-mode choice. Interactive runs use the supervised path.
+5. End with a clear call to action that makes current-session execution authorization explicit.
+6. Do not ask for a run-mode choice. Interactive runs use the direct supervised path.
 7. Keep the base template minimal. Add optional blocks only when they are genuinely needed.
 8. Only show "Required keep labels" and/or "Required stop labels" when the goal truly has structural success requirements beyond the numeric target.
 9. Keep the runtime checklist short. It exists to reinforce execution order, not to restate the whole protocol.
@@ -117,11 +117,10 @@ When the user replies with launch approval (`go`, `start`, `launch`, or an equiv
 1. By handoff time, the setup check should already be complete. Keep setup details out of the user-facing handoff unless a setup failure blocks launch.
 2. When model-visible goal tools are available, align the official Codex goal before initialization: call `get_goal`, reuse a matching non-complete current goal, or call `create_goal` with the confirmed objective when no goal exists.
 3. If an existing official goal cannot be reused, do not create another goal; surface that conflict in the confirmation summary before launch and let the user resolve it there.
-4. Start a worker subagent when subagent tools are available; in Codex tool terms, call `spawn_agent` with `agent_type=worker` and `fork_context=true`. Give it the confirmed run config, the workspace paths, the selected workflow references, and the runtime checklist. The worker must initialize `autoresearch-results/results.tsv`, `autoresearch-results/state.json`, and `autoresearch-results/context.json` after the baseline is known, then keep logging every completed experiment before starting the next one.
-5. The parent session monitors the worker with concise milestone summaries. Do not stream raw worker reasoning, do not duplicate the loop locally, and do not ask the user to continue.
-6. If subagent tools are unavailable, run the same loop directly in the current session and state that the context-saving supervised worker path is unavailable.
-7. Mark the official Codex goal complete only when the configured autoresearch success condition is actually met; hard blockers and user interruptions are not complete goals.
-8. Do not ask the user to rerun a shell wrapper command just to continue.
+4. Continue in the current Codex session with the confirmed run config, workspace paths, selected workflow references, and runtime checklist. Initialize `autoresearch-results/results.tsv`, `autoresearch-results/state.json`, and `autoresearch-results/context.json` after the baseline is known, then keep logging every completed experiment before starting the next one.
+5. Do not spawn workers or delegate the loop to another agent. The current session performs the run directly and reports concise milestone summaries.
+6. Mark the official Codex goal complete only when the configured autoresearch success condition is actually met; hard blockers and user interruptions are not complete goals.
+7. Do not ask the user to rerun a shell wrapper command just to continue.
 
 If the chosen path is **Fresh start** after recovery analysis, archive prior persistent run artifacts through the fresh-start flow before the supervised run starts. Legacy repo-root artifacts are not recovered into the new schema; the user must choose fresh start or move/archive them.
 
@@ -161,9 +160,8 @@ Use this appendix only when you need help choosing the shortest useful question 
 - "If I get stuck after several attempts, should I try bolder architectural changes, or stop and report?"
 - "If failed iterations need rollback, may I use destructive rollback inside a dedicated experiment branch/worktree so I do not have to stop and ask mid-run?"
 
-### Parallel & Search
+### Search
 
-- "I can test multiple ideas at the same time using parallel experiments. Want me to try up to 3 hypotheses per round? (I detected {N} GPUs/NPUs -- each experiment would need how many?)"
 - "If I get stuck, can I search the web for solutions? (results are always verified mechanically before applying)"
 
 ### Debug-Specific
@@ -212,7 +210,6 @@ The wizard internally maps the conversation to these fields (the user never sees
 - Acceptance criteria (optional) -- list of `{metric_key, operator, target}` thresholds that the retained result must satisfy before the run can stop; only configure when the goal has multi-metric success requirements
 - Required keep criteria (optional) -- list of `{metric_key, operator, target}` hard gates that every retained result must satisfy to enter `keep` state (e.g., `hard_conflicts == 0`); use when some metrics must never regress regardless of primary metric improvement
 - Rollback (optional) -- ask only if destructive rollback may be needed for unattended execution; otherwise default to non-destructive revert
-- Parallel (optional) -- ask if environment supports it (CPU >= 4, RAM >= 8GB)
 - Web search (optional) -- ask if user wants web search when stuck
 
 ### plan

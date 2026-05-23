@@ -26,7 +26,7 @@ Run these probes once at the start of a run, before the first iteration.
 | Apple Silicon | `sysctl -n machdep.cpu.brand_string 2>/dev/null \| grep -i apple` | MPS available (1 device) |
 | No accelerator | all above fail | CPU-only environment |
 
-**Device count is critical** for parallel experiment planning. Store the total number of accelerator devices in the environment profile so `references/parallel-experiments-protocol.md` can calculate `max_workers = floor(total_devices / devices_per_experiment)`.
+Record accelerator count for feasibility checks and verify-command planning. Active runs are serial and do not allocate devices across concurrent workers.
 
 ### 3. Toolchain Detection
 
@@ -99,7 +99,7 @@ Adjust hypothesis parameters based on available resources:
 
 | Resource Level | Adjustment |
 |---------------|------------|
-| CPU cores <= 2 | Avoid parallelism-dependent optimizations |
+| CPU cores <= 2 | Avoid CPU-heavy concurrent verify strategies |
 | RAM < 8GB | Prefer streaming over in-memory approaches |
 | Disk < 5GB | Warn about large build artifacts |
 | Slow verify (>60s) | Prefer smaller, more targeted changes |

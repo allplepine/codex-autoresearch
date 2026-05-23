@@ -132,7 +132,7 @@ python3 <skill-root>/scripts/autoresearch_resume_check.py --repo /path/to/repo
 
 Here `<skill-root>` is the directory containing the loaded `SKILL.md`. In the common repo-local install this is usually `.agents/skills/codex-autoresearch`.
 
-It reconstructs retained state from the TSV, tolerates parallel worker rows, and returns one of four decisions:
+It reconstructs retained state from the TSV, tolerates legacy suffix rows from older runs, and returns one of four decisions:
 
 - `full_resume`
 - `mini_wizard`
@@ -234,6 +234,6 @@ If the recovered config clearly belongs to a different goal than the current req
 ## Integration Points
 
 - **autonomous-loop-protocol.md:** Run the launch gate before the wizard. Initialize new run artifacts only after baseline is measured.
-- **results-logging.md:** Main integer rows define retained state; worker rows are audit detail only.
+- **results-logging.md:** Main integer rows define retained state; legacy suffix rows are audit detail only.
 - **interaction-wizard.md:** Mini-wizard uses helper mismatch reasons instead of raw row counts.
 - **health-check-protocol.md:** Deep integrity checks use the resume helper, not row-count heuristics.

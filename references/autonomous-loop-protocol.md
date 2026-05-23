@@ -100,12 +100,12 @@ Do not silently infer every field and start iterating. The user should approve t
 
 **Two-phase boundary:** Ask questions before launch. After launch, keep working until a stop condition, blocker, or user interrupt.
 
-- Before the user says "go", confirm the interactive launch summary and make worker-subagent authorization explicit. Do not ask for a run-mode choice; interactive runs use the supervised path.
-- The parent Codex session stays available for monitoring, uses the official Codex goal as the thread-level continuation anchor when goal tools are available, and delegates the active loop to a worker subagent when subagent tools are available.
-- The worker calls the shared helper scripts directly and keeps the same improve/verify/log protocol. The parent monitors concise milestone summaries and does not duplicate the loop locally.
+- Before the user says "go", confirm the interactive launch summary and make current-session execution authorization explicit. Do not ask for a run-mode choice; interactive runs use the direct supervised path.
+- The current Codex session stays available for monitoring, uses the official Codex goal as the thread-level continuation anchor when goal tools are available, and performs the active loop directly.
+- The current session calls the shared helper scripts directly and keeps the same improve/verify/log protocol while reporting concise milestone summaries.
 - The confirmed launch summary may describe either a single primary repo or a primary repo plus companion repos with separate scopes.
-- Interactive continuation uses only the supervised worker path.
-- If subagent tools are unavailable, run directly in the current session and state that the context-saving supervised worker path is unavailable.
+- Interactive continuation uses the same direct supervised path.
+- Do not spawn workers or delegate the loop to other agents.
 - After launch, do not pause for clarification, confirmation, or permission. If ambiguity appears mid-loop, apply best practices, log the reasoning, and keep iterating.
 
 ### Safety Checks
@@ -183,7 +183,7 @@ If the baseline itself fails unpredictably, do not enter the optimization loop. 
 
 ## Phase 3: Ideate
 
-Choose one concrete hypothesis. When parallel mode is active (see `references/parallel-experiments-protocol.md`), generate N hypotheses instead of one.
+Choose one concrete hypothesis. Active runs are serial: do not generate concurrent hypotheses, and do not run multiple changes at the same time.
 
 ### Hypothesis Filtering
 
@@ -373,16 +373,10 @@ Do not hand-edit `autoresearch-results/results.tsv` or `autoresearch-results/sta
   ```bash
   python3 <skill-root>/scripts/autoresearch_record_iteration.py ...
   ```
-- For parallel batches, prefer:
-  ```bash
-  python3 <skill-root>/scripts/autoresearch_select_parallel_batch.py --batch-file ...
-  ```
-
 These helpers keep two key semantics consistent:
 
 1. `state.current_metric` is the retained metric after the keep/discard decision.
 2. `state.last_trial_metric` is the metric from the latest attempted main iteration.
-3. Parallel batch merges reuse the same lightweight health/worktree preflight before updating the authoritative run state.
 
 ## Phase 9: Repeat
 
@@ -420,7 +414,7 @@ Health Check runs strictly between Log (Phase 8) and Phase 8.7 (Re-Anchoring). T
 
 Run health checks per `references/health-check-protocol.md`:
 
-- **Supervised worker cycle boundary:** before launch and periodically during long runs, run `autoresearch_health_check.py` for disk space, git state, verify command existence, and resume-helper-based TSV/JSON integrity.
+- **Supervised run cycle boundary:** before launch and periodically during long runs, run `autoresearch_health_check.py` for disk space, git state, verify command existence, and resume-helper-based TSV/JSON integrity.
 - **Commit safety at the same boundary:** when the managed repos are git-backed, enforce the same scope-aware worktree check before each trial commit. Iteration is blocked if staged autoresearch artifacts or out-of-scope worktree changes are present in any managed repo.
 - **Extended review:** scope integrity, environment drift, verify/guard consistency, and context health when the workflow explicitly schedules the protocol-level extended checks.
 - Log integrity should use the helper-script reconstruction of main rows and retained state, not raw TSV row counts.

@@ -80,4 +80,4 @@ Do not add perspectives reasoning to the TSV log -- keep it in commit messages o
 - **autonomous-loop-protocol.md (Phase 3: Ideate):** Apply perspectives before selecting the hypothesis.
 - **lessons-protocol.md:** Historian lens reads from the lessons file.
 - **pivot-protocol.md:** Always apply perspectives after a REFINE or PIVOT.
-- **parallel-experiments-protocol.md:** When generating multiple hypotheses for parallel execution, apply perspectives to each independently.
+- **Serial execution:** Active runs choose one validation question at a time; apply perspectives before each sequential hypothesis selection when the protocol calls for them.

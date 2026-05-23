@@ -11,7 +11,6 @@ python3 <skill-root>/scripts/autoresearch_lessons.py
 The protocol-aligned runtime wiring is:
 
 - `autoresearch_record_iteration.py` appends lessons automatically after every `keep` and every `pivot` in interactive modes.
-- `autoresearch_select_parallel_batch.py` appends the same interactive keep lesson when a parallel batch selects a winning worker and records a `keep` main row.
 - At completion, append a summary lesson when no lesson has been written in the last 5 iterations of the same run. If no run tag is available, suppress only an exact duplicate summary for the current iteration.
 
 ## Lessons File
