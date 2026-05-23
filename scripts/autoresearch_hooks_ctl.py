@@ -9,12 +9,19 @@ import re
 import shlex
 import shutil
 import sys
-import tomllib
 from pathlib import Path
 from typing import Any
 
 from autoresearch_core import print_json
 from autoresearch_helpers import AutoresearchError, utc_now
+
+try:
+    import tomllib as _tomllib
+except ModuleNotFoundError:
+    try:
+        import tomli as _tomllib
+    except ModuleNotFoundError:
+        _tomllib = None
 
 
 MANIFEST_VERSION = 2
@@ -183,9 +190,13 @@ def write_text_with_backup(path: Path, content: str) -> str | None:
 def parse_toml_config(text: str) -> dict[str, Any]:
     if not text.strip():
         return {}
+    if _tomllib is None:
+        raise AutoresearchError(
+            "TOML parsing requires Python 3.11+ or the 'tomli' package on Python 3.10 and older"
+        )
     try:
-        payload = tomllib.loads(text)
-    except tomllib.TOMLDecodeError as exc:
+        payload = _tomllib.loads(text)
+    except _tomllib.TOMLDecodeError as exc:
         raise AutoresearchError(f"Invalid TOML in {config_path()}: {exc}") from exc
     if not isinstance(payload, dict):
         return {}
