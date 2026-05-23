@@ -32,7 +32,7 @@ DEFAULT_RESULTS_PATH = f"{ARTIFACT_DIR_NAME}/{RESULTS_FILE_NAME}"
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Synchronize autoresearch-results/state.json with the active interactive session mode."
+        description=f"Synchronize {ARTIFACT_DIR_NAME}/state.json with the active interactive session mode."
     )
     parser.add_argument(
         "--repo",

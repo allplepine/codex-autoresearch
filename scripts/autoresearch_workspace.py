@@ -144,7 +144,7 @@ def require_git_repo(start: Path | None = None) -> Path:
     repo = resolve_git_repo(start)
     if repo is None:
         raise AutoresearchError(
-            "Managed repos must be git repositories so codex-autoresearch can store repo-local pointers."
+            "Managed repos must be git repositories so generic-supervised-skill can store repo-local pointers."
         )
     return repo
 
@@ -189,7 +189,7 @@ def artifact_root_from_start(start: Path | None = None) -> Path:
         if context is not None:
             return context.artifact_root
         raise AutoresearchError(
-            f"No codex-autoresearch pointer is available for repo {repo}. "
+            f"No generic-supervised-skill pointer is available for repo {repo}. "
             "Start a new workspace-owned run or pass an explicit artifact root."
         )
     raise AutoresearchError(
@@ -481,7 +481,7 @@ def require_context_for_repo(repo: Path | None) -> CanonicalContext:
         pointer_path = repo_pointer_path(resolved_repo)
     except AutoresearchError as exc:
         raise AutoresearchError(
-            f"Could not resolve codex-autoresearch pointer path for repo {resolved_repo}: {exc}"
+            f"Could not resolve generic-supervised-skill pointer path for repo {resolved_repo}: {exc}"
         ) from exc
     pointer = load_repo_pointer(resolved_repo)
     if pointer is None:
@@ -492,8 +492,8 @@ def require_context_for_repo(repo: Path | None) -> CanonicalContext:
         if legacy_error is not None:
             raise AutoresearchError(legacy_error)
         raise AutoresearchError(
-            f"No codex-autoresearch context found for repo {resolved_repo}; expected repo-local "
-            f"pointer at {pointer_path} or canonical autoresearch-results/context.json."
+            f"No generic-supervised-skill context found for repo {resolved_repo}; expected repo-local "
+            f"pointer at {pointer_path} or canonical {ARTIFACT_DIR_NAME}/{HOOK_CONTEXT_NAME}."
         )
 
     context_path = canonical_context_path(pointer.artifact_root)
@@ -692,6 +692,6 @@ def legacy_layout_error(repo: Path) -> str | None:
         return None
     return (
         "Found legacy repo-root autoresearch artifacts. This version uses workspace-owned "
-        "autoresearch-results/. Former autoresearch-hook-context.json is now context.json "
+        f"{ARTIFACT_DIR_NAME}/. Former autoresearch-hook-context.json is now context.json "
         "inside that directory. Start a fresh run or move/archive the old artifacts."
     )

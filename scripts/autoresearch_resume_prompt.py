@@ -67,7 +67,7 @@ def build_runtime_prompt(
     supervisor_script = script_root / "autoresearch_supervisor_status.py"
     lines = [
         "$generic-supervised-skill",
-        "This repo is managed by the autoresearch runtime controller.",
+        "This repo is managed by the generic-supervised-skill runtime controller.",
         "The human already completed the confirmation phase for this run.",
         f"Use {launch_path} as the authoritative launch manifest.",
         f"Runtime launch decision: {decision} ({strategy}).",

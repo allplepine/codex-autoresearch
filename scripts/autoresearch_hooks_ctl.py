@@ -9,12 +9,19 @@ import re
 import shlex
 import shutil
 import sys
-import tomllib
 from pathlib import Path
 from typing import Any
 
 from autoresearch_core import print_json
 from autoresearch_helpers import AutoresearchError, utc_now
+
+try:
+    import tomllib as _tomllib
+except ModuleNotFoundError:
+    try:
+        import tomli as _tomllib
+    except ModuleNotFoundError:
+        _tomllib = None
 
 
 MANIFEST_VERSION = 2
@@ -23,21 +30,21 @@ HOOKS_FEATURE_KEY = "hooks"
 GOALS_FEATURE_KEY = "goals"
 HOOKS_FEATURE_DEFAULT_ENABLED = True
 GOALS_FEATURE_DEFAULT_ENABLED = False
-MANAGED_DIR_NAME = "autoresearch-hooks"
+MANAGED_DIR_NAME = "generic-supervised-skill-hooks"
 SESSION_SCRIPT_NAME = "session_start.py"
 STOP_SCRIPT_NAME = "stop.py"
 COMMON_SCRIPT_NAME = "autoresearch_hook_common.py"
 CONTEXT_SCRIPT_NAME = "autoresearch_hook_context.py"
 MANIFEST_FILE_NAME = "manifest.json"
-SESSION_STATUS_MESSAGE = "codex-autoresearch SessionStart hook"
-STOP_STATUS_MESSAGE = "codex-autoresearch Stop hook"
+SESSION_STATUS_MESSAGE = "generic-supervised-skill SessionStart hook"
+STOP_STATUS_MESSAGE = "generic-supervised-skill Stop hook"
 RECOMMENDED_LAUNCH_COMMAND = (
     "codex --enable goals --enable hooks --dangerously-bypass-approvals-and-sandbox"
 )
 SESSION_TIMEOUT_SECONDS = 5
 STOP_TIMEOUT_SECONDS = 10
-HOOK_TRUST_BLOCK_BEGIN = "# BEGIN codex-autoresearch hook trust"
-HOOK_TRUST_BLOCK_END = "# END codex-autoresearch hook trust"
+HOOK_TRUST_BLOCK_BEGIN = "# BEGIN generic-supervised-skill hook trust"
+HOOK_TRUST_BLOCK_END = "# END generic-supervised-skill hook trust"
 HELPER_BUNDLE_SCRIPT_NAMES = (
     "autoresearch_acceptance.py",
     "autoresearch_supervisor_status.py",
@@ -135,7 +142,7 @@ def source_context_script() -> Path:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Install, inspect, or remove the optional user-level Codex hooks used by codex-autoresearch."
+        description="Install, inspect, or remove the optional user-level Codex hooks used by generic-supervised-skill."
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
     status = subparsers.add_parser("status", help="Inspect the current hook installation.")
@@ -183,9 +190,13 @@ def write_text_with_backup(path: Path, content: str) -> str | None:
 def parse_toml_config(text: str) -> dict[str, Any]:
     if not text.strip():
         return {}
+    if _tomllib is None:
+        raise AutoresearchError(
+            "TOML parsing requires Python 3.11+ or the 'tomli' package on Python 3.10 and older"
+        )
     try:
-        payload = tomllib.loads(text)
-    except tomllib.TOMLDecodeError as exc:
+        payload = _tomllib.loads(text)
+    except _tomllib.TOMLDecodeError as exc:
         raise AutoresearchError(f"Invalid TOML in {config_path()}: {exc}") from exc
     if not isinstance(payload, dict):
         return {}

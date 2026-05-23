@@ -133,10 +133,10 @@ Append a shipment record.
 
 In addition to the ship-specific output directory, ship mode still writes the generic iterating-run artifacts:
 
-- `autoresearch-results/results.tsv`
-- `autoresearch-results/lessons.md`
-- `autoresearch-results/state.json`
-- `autoresearch-results/context.json`
+- `generic-supervised-results/results.tsv`
+- `generic-supervised-results/lessons.md`
+- `generic-supervised-results/state.json`
+- `generic-supervised-results/context.json`
 
 ## Output Directory
 

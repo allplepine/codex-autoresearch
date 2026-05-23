@@ -7,7 +7,7 @@ This is the detailed reference for TSV/state semantics. During normal loop execu
 Default user-visible directory:
 
 ```text
-<workspace_root>/autoresearch-results/
+<workspace_root>/generic-supervised-results/
 ```
 
 Fixed files:
@@ -29,15 +29,15 @@ context.json
   "active": true,
   "session_mode": null,
   "workspace_root": "/abs/path/to/workspace",
-  "artifact_root": "/abs/path/to/workspace/autoresearch-results",
+  "artifact_root": "/abs/path/to/workspace/generic-supervised-results",
   "primary_repo": "/abs/path/to/repo",
   "repo_targets": [
     {"path": "/abs/path/to/repo", "scope": "src/**/*.ts", "role": "primary"},
     {"path": "/abs/path/to/companion", "scope": "lib/**/*.py", "role": "companion"}
   ],
   "verify_cwd": "workspace_root",
-  "results_path": "/abs/path/to/workspace/autoresearch-results/results.tsv",
-  "state_path": "/abs/path/to/workspace/autoresearch-results/state.json",
+  "results_path": "/abs/path/to/workspace/generic-supervised-results/results.tsv",
+  "state_path": "/abs/path/to/workspace/generic-supervised-results/state.json",
   "launch_path": null,
   "runtime_path": null,
   "log_path": null,
@@ -51,7 +51,7 @@ context.json
 | `active` | `bool` | Whether this run context is active |
 | `session_mode` | `string \| null` | Compatibility marker for helper state; do not expose to users |
 | `workspace_root` | `string` | Absolute path to the workspace root |
-| `artifact_root` | `string` | Absolute path to `autoresearch-results/` |
+| `artifact_root` | `string` | Absolute path to `generic-supervised-results/` |
 | `primary_repo` | `string` | Absolute path to the primary git repo |
 | `repo_targets` | `array` | List of managed repos with path, scope, and role |
 | `verify_cwd` | `string \| null` | `"workspace_root"` or `"primary_repo"` |
@@ -62,7 +62,7 @@ context.json
 | `log_path` | `string \| null` | Reserved for legacy runtime state; normally `null` |
 | `updated_at` | `string` | ISO 8601 UTC timestamp |
 
-Each managed repo also stores a repo-local pointer at `.codex-autoresearch/pointer.json` that references back to the workspace-owned `context.json`.
+Each managed repo also stores a repo-local pointer at `.generic-supervised-skill/pointer.json` that references back to the workspace-owned `context.json`.
 
 Add a direction comment at the top:
 
@@ -200,7 +200,7 @@ These helper scripts live in the skill bundle. Do not confuse them with the targ
 Define `<skill-root>` as the directory that contains the loaded `SKILL.md`. In the common repo-local install this is usually `.agents/skills/generic-supervised-skill`, so the exact command becomes `python3 .agents/skills/generic-supervised-skill/scripts/...`.
 
 - `python3 <skill-root>/scripts/autoresearch_init_run.py --repo <primary_repo> --workspace-root <workspace_root> ...`
-  Initializes `autoresearch-results/results.tsv` and `autoresearch-results/state.json` together from the baseline measurement, writes canonical `context.json`, and writes repo-local pointers for every managed repo. Interactive supervised runs use the helper default session marker for compatibility. Multi-repo runs may add repeated `--repo-commit PATH=COMMIT` flags to persist companion-repo baseline provenance in JSON state. Runs with structural success criteria may add repeated `--required-keep-label LABEL` flags to protect retained state and repeated `--required-stop-label LABEL` flags so the supervisor only stops when the retained keep also carries those labels.
+  Initializes `generic-supervised-results/results.tsv` and `generic-supervised-results/state.json` together from the baseline measurement, writes canonical `context.json`, and writes repo-local pointers for every managed repo. Interactive supervised runs use the helper default session marker for compatibility. Multi-repo runs may add repeated `--repo-commit PATH=COMMIT` flags to persist companion-repo baseline provenance in JSON state. Runs with structural success criteria may add repeated `--required-keep-label LABEL` flags to protect retained state and repeated `--required-stop-label LABEL` flags so the supervisor only stops when the retained keep also carries those labels.
 - `python3 <skill-root>/scripts/autoresearch_set_session_mode.py --repo <repo> ...`
   Legacy internal helper for synchronizing old interactive state. Normal supervised skill flow should not expose or call it.
 - `python3 <skill-root>/scripts/autoresearch_record_iteration.py ...`
@@ -217,15 +217,15 @@ Define `<skill-root>` as the directory that contains the loaded `SKILL.md`. In t
 - In normal loop execution, do that closeout through the bundled helper scripts rather than by hand.
 - Append after every iteration, including crashes, no-ops, refines, pivots, and searches.
 - Never commit the Results directory.
-- Treat `autoresearch-results/` and repo-local pointers as autoresearch-owned artifacts: leave them unstaged and ignore them when checking experiment scope.
+- Treat `generic-supervised-results/` and repo-local pointers as autoresearch-owned artifacts: leave them unstaged and ignore them when checking experiment scope.
 - Re-read the latest entries before choosing the next idea.
 - The standalone health-check helper reports warnings/blockers as JSON. Append a TSV row only when the runtime explicitly decides to log a blocker or recovery event.
 
 ## Cross-Validation with JSON State
 
-`autoresearch-results/state.json` is the primary recovery source for session resume (see `references/session-resume-protocol.md`). The TSV log and the JSON state file serve complementary roles:
+`generic-supervised-results/state.json` is the primary recovery source for session resume (see `references/session-resume-protocol.md`). The TSV log and the JSON state file serve complementary roles:
 
-| Aspect | `autoresearch-results/results.tsv` | `autoresearch-results/state.json` |
+| Aspect | `generic-supervised-results/results.tsv` | `generic-supervised-results/state.json` |
 |--------|----------------------|--------------------------|
 | **Purpose** | Full audit trail of every iteration | Compact snapshot for fast resume |
 | **Content** | One main row per iteration, plus legacy suffix rows if imported from older runs | Aggregated counters and config |
@@ -240,4 +240,4 @@ Define `<skill-root>` as the directory that contains the loaded `SKILL.md`. In t
 - **Multi-repo provenance:** when `state.last_repo_commits` or `state.last_trial_repo_commits` are present, they are auxiliary JSON-only provenance keyed by repo path. They are not reconstructed from the TSV and therefore do not participate in TSV/JSON consistency blocking.
 - **Legacy suffix-row tolerance:** Rows such as `5a`, `5b`, and `5c` are ignored for `state.iteration` matching. They provide audit detail only.
 
-During session resume, `python3 <skill-root>/scripts/autoresearch_resume_check.py --repo <repo>` reconstructs the retained state from the TSV and compares it with `autoresearch-results/state.json`. Any mismatch triggers a mini-wizard rather than a silent full resume.
+During session resume, `python3 <skill-root>/scripts/autoresearch_resume_check.py --repo <repo>` reconstructs the retained state from the TSV and compares it with `generic-supervised-results/state.json`. Any mismatch triggers a mini-wizard rather than a silent full resume.

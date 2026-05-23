@@ -58,7 +58,7 @@ Rules:
 - If the goal is still unclear after 3 rounds, propose the most reasonable interpretation and let the user approve or edit.
 - If the user says the experiment spans multiple repos, identify one **primary repo** for run-control artifacts and list any additional **companion repos** separately, each with its own scope.
 - Default the `workspace_root` candidate from the launch context. If Codex was started inside a git repo, use that repo root as the default candidate. If Codex was started outside a git repo, use the current launch directory as the default candidate.
-- Do not silently widen `workspace_root` to a parent directory just because nearby sibling repos, old `autoresearch-results/`, or a broader filesystem layout exist. Only widen to a broader shared workspace when the user explicitly confirms that intent.
+- Do not silently widen `workspace_root` to a parent directory just because nearby sibling repos, old `generic-supervised-results/`, or a broader filesystem layout exist. Only widen to a broader shared workspace when the user explicitly confirms that intent.
 - Do not replace the structured summary with a single-line "go?" prompt. The user should see what you inferred from the repo before they are asked to approve launch.
 - If the chosen `workspace_root` is outside the launch context or outside the primary repo, call that out explicitly in the confirmation summary and show the resulting `Results directory`.
 - If clarification changes the `workspace_root`, rerun the launch gate with the confirmed workspace root before the final summary.
@@ -73,7 +73,7 @@ Before launching, present a structured confirmation summary. The user should be 
 ```
 **Confirmed**
 - Target: eliminate `any` types in src/**/*.ts
-- Results directory: `./autoresearch-results/`
+- Results directory: `./generic-supervised-results/`
 - Metric: `any` occurrence count (current: 47), direction: lower
 - Verify: `grep -r ":\s*any" src/ --include="*.ts" | wc -l`
 - Guard: `tsc --noEmit` must still pass
@@ -105,7 +105,7 @@ Before launching, present a structured confirmation summary. The user should be 
 9. Keep the runtime checklist short. It exists to reinforce execution order, not to restate the whole protocol.
 10. Do not include setup details in the normal confirmation summary. Mention them only when a setup failure blocks launch.
 11. When the run tracks multiple metrics, show the additional thresholds in plain language (e.g., "Also keeping: hard_conflicts == 0") rather than exposing internal field names. Omit this line entirely for single-metric runs.
-12. Always show the `Results directory`. If it is the default `./autoresearch-results/` under the launch context, the relative form is fine. If it lives outside the launch context or outside the primary repo, show the absolute path and make that widening explicit before launch.
+12. Always show the `Results directory`. If it is the default `./generic-supervised-results/` under the launch context, the relative form is fine. If it lives outside the launch context or outside the primary repo, show the absolute path and make that widening explicit before launch.
 13. If the startup tip is shown, keep it outside the confirmed run config so users do not confuse it with an internal requirement for this specific run.
 
 The user replies "go", "start", "launch", or corrects something. No field names, no YAML, no structured input required.
@@ -117,7 +117,7 @@ When the user replies with launch approval (`go`, `start`, `launch`, or an equiv
 1. By handoff time, the setup check should already be complete. Keep setup details out of the user-facing handoff unless a setup failure blocks launch.
 2. When model-visible goal tools are available, align the official Codex goal before initialization: call `get_goal`, reuse a matching non-complete current goal, or call `create_goal` with the confirmed objective when no goal exists.
 3. If an existing official goal cannot be reused, do not create another goal; surface that conflict in the confirmation summary before launch and let the user resolve it there.
-4. Continue in the current Codex session with the confirmed run config, workspace paths, selected workflow references, and runtime checklist. Initialize `autoresearch-results/results.tsv`, `autoresearch-results/state.json`, and `autoresearch-results/context.json` after the baseline is known, then keep logging every completed experiment before starting the next one.
+4. Continue in the current Codex session with the confirmed run config, workspace paths, selected workflow references, and runtime checklist. Initialize `generic-supervised-results/results.tsv`, `generic-supervised-results/state.json`, and `generic-supervised-results/context.json` after the baseline is known, then keep logging every completed experiment before starting the next one.
 5. Do not spawn workers or delegate the loop to another agent. The current session performs the run directly and reports concise milestone summaries.
 6. Mark the official Codex goal complete only when the configured autoresearch success condition is actually met; hard blockers and user interruptions are not complete goals.
 7. Do not ask the user to rerun a shell wrapper command just to continue.
@@ -133,7 +133,7 @@ Use this appendix only when you need help choosing the shortest useful question 
 - "I see both `src/models/` and `src/api/` -- should I optimize the model layer only, or the full src?"
 - "There are 3 training scripts here (`train_gpt2.py`, `train_llama.py`, `train_vit.py`) -- which one?"
 - "Should I only modify test files, or can I also refactor the source code to make it more testable?"
-- "I can keep the Results directory in `./autoresearch-results/` for this current launch context, or widen to a shared parent workspace if this run truly spans multiple repos. Which do you want?"
+- "I can keep the Results directory in `./generic-supervised-results/` for this current launch context, or widen to a shared parent workspace if this run truly spans multiple repos. Which do you want?"
 
 ### Metric & Target
 
@@ -271,7 +271,7 @@ If validation fails, tell the user in plain language what went wrong and suggest
 
 ## Mini-Wizard (Session Resume)
 
-When `session-resume-protocol.md` detects a prior run with a valid `autoresearch-results/state.json` but inconsistent TSV (Recovery Priority 2), the full wizard is replaced by a single-round mini-wizard:
+When `session-resume-protocol.md` detects a prior run with a valid `generic-supervised-results/state.json` but inconsistent TSV (Recovery Priority 2), the full wizard is replaced by a single-round mini-wizard:
 
 1. Show what was detected:
    - Prior run tag, iteration count, best metric, and last status from the JSON state.
@@ -280,6 +280,6 @@ When `session-resume-protocol.md` detects a prior run with a valid `autoresearch
    - **Resume:** use the JSON `config` as the authoritative source. Briefly confirm scope, metric, and verify command in a single confirmation block.
    - **Fresh start:** archive old artifacts with `.prev` suffixes and proceed with the full wizard.
 3. If the user chooses to resume, present a condensed confirmation summary (same format as Step 3 above but sourced from JSON `config` instead of repo scanning).
-4. The user replies "go" and the supervised loop starts immediately from `autoresearch-results/results.tsv` + `autoresearch-results/state.json`. No further rounds.
+4. The user replies "go" and the supervised loop starts immediately from `generic-supervised-results/results.tsv` + `generic-supervised-results/state.json`. No further rounds.
 
 The mini-wizard respects the same two-phase boundary: all questions happen before launch.

@@ -73,10 +73,10 @@ Required completion summary:
 
 Artifact:
 
-- `autoresearch-results/results.tsv`
-- `autoresearch-results/lessons.md` (if lessons were extracted)
-- `autoresearch-results/state.json` (session state snapshot, not committed to git; see `references/session-resume-protocol.md`)
-- `autoresearch-results/context.json` (canonical workspace-owned run context for resume and status helpers)
+- `generic-supervised-results/results.tsv`
+- `generic-supervised-results/lessons.md` (if lessons were extracted)
+- `generic-supervised-results/state.json` (session state snapshot, not committed to git; see `references/session-resume-protocol.md`)
+- `generic-supervised-results/context.json` (canonical workspace-owned run context for resume and status helpers)
 
 ### plan
 
@@ -94,7 +94,7 @@ No output directory required unless the user asks to save artifacts.
 
 ### debug
 
-Debug mode also persists the generic run-control artifacts under `autoresearch-results/`; the debug directory is the investigation report.
+Debug mode also persists the generic run-control artifacts under `generic-supervised-results/`; the debug directory is the investigation report.
 
 Output directory:
 
@@ -116,18 +116,18 @@ debug/{YYMMDD}-{HHMM}-{slug}/
 
 ### fix
 
-No extra output directory is required by default. Fix mode uses the normal run artifacts under `autoresearch-results/`:
+No extra output directory is required by default. Fix mode uses the normal run artifacts under `generic-supervised-results/`:
 
 - `results.tsv`
 - `state.json`
 - `context.json`
 - `lessons.md` if extracted
 
-If the user explicitly asks to save human-readable closeout artifacts, write them under `autoresearch-results/fix/{YYMMDD}-{HHMM}-{slug}/`, not repo-root `fix/`.
+If the user explicitly asks to save human-readable closeout artifacts, write them under `generic-supervised-results/fix/{YYMMDD}-{HHMM}-{slug}/`, not repo-root `fix/`.
 
 ### security
 
-Security mode also persists the generic run-control artifacts under `autoresearch-results/`; the security directory is the audit report.
+Security mode also persists the generic run-control artifacts under `generic-supervised-results/`; the security directory is the audit report.
 
 Output directory:
 
@@ -147,10 +147,10 @@ security/{YYMMDD}-{HHMM}-{slug}/
 
 Ship mode also persists the generic iterating-run artifacts:
 
-- `autoresearch-results/results.tsv`
-- `autoresearch-results/lessons.md` (if lessons were extracted)
-- `autoresearch-results/state.json`
-- `autoresearch-results/context.json`
+- `generic-supervised-results/results.tsv`
+- `generic-supervised-results/lessons.md` (if lessons were extracted)
+- `generic-supervised-results/state.json`
+- `generic-supervised-results/context.json`
 
 Output directory:
 

@@ -100,9 +100,9 @@ iteration	commit	metric	delta	guard	status	description
 
 ## Output Artifacts
 
-By default, fix mode writes only the normal run artifacts under `autoresearch-results/`.
+By default, fix mode writes only the normal run artifacts under `generic-supervised-results/`.
 
-Do not create a repo-root `fix/` directory during normal execution. If the user explicitly asks to save human-readable closeout artifacts, put them under `autoresearch-results/fix/{YYMMDD}-{HHMM}-{slug}/` and leave them unstaged.
+Do not create a repo-root `fix/` directory during normal execution. If the user explicitly asks to save human-readable closeout artifacts, put them under `generic-supervised-results/fix/{YYMMDD}-{HHMM}-{slug}/` and leave them unstaged.
 
 ## Web Search for Unfamiliar Errors
 

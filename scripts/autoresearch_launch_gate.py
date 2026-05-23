@@ -25,7 +25,7 @@ from autoresearch_resume_check import evaluate_resume_state
 from autoresearch_workspace import default_workspace_artifacts, resolve_workspace_root
 
 
-MISSING_CONTEXT_PREFIX = "No codex-autoresearch context found for repo "
+MISSING_CONTEXT_PREFIX = "No generic-supervised-skill context found for repo "
 
 
 def pid_is_zombie(pid: int) -> bool:

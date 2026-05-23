@@ -22,7 +22,7 @@ HEADER = [
     "description",
 ]
 SESSION_MODE_CHOICES = ("foreground", "background")
-ARTIFACT_DIR_NAME = "autoresearch-results"
+ARTIFACT_DIR_NAME = "generic-supervised-results"
 RESULTS_FILE_NAME = "results.tsv"
 STATE_FILE_NAME = "state.json"
 LAUNCH_MANIFEST_NAME = "launch.json"
@@ -30,9 +30,11 @@ RUNTIME_STATE_NAME = "runtime.json"
 RUNTIME_LOG_NAME = "runtime.log"
 LESSONS_FILE_NAME = "lessons.md"
 HOOK_CONTEXT_NAME = "context.json"
-POINTER_DIR_NAME = ".codex-autoresearch"
+POINTER_DIR_NAME = ".generic-supervised-skill"
 POINTER_FILE_NAME = "pointer.json"
 LEGACY_AUTORESEARCH_OWNED_BASENAMES = {
+    ".codex-autoresearch",
+    "autoresearch-results",
     "research-results.tsv",
     "autoresearch-state.json",
     "autoresearch-launch.json",
@@ -40,6 +42,10 @@ LEGACY_AUTORESEARCH_OWNED_BASENAMES = {
     "autoresearch-runtime.log",
     "autoresearch-lessons.md",
     "autoresearch-hook-context.json",
+}
+COMPANION_SKILL_OWNED_BASENAMES = {
+    ".research-validation-skill",
+    "research-validation-results",
 }
 AUTORESEARCH_OWNED_BASENAMES = {
     ARTIFACT_DIR_NAME,
@@ -51,6 +57,7 @@ AUTORESEARCH_OWNED_BASENAMES = {
     RUNTIME_LOG_NAME,
     LESSONS_FILE_NAME,
     HOOK_CONTEXT_NAME,
+    *COMPANION_SKILL_OWNED_BASENAMES,
     *LEGACY_AUTORESEARCH_OWNED_BASENAMES,
 }
 
