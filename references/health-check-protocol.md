@@ -48,7 +48,7 @@ Run at iterations 10, 20, 30, etc. only when the workflow or runtime explicitly 
 
 ## Helper Output Contract
 
-`autoresearch_health_check.py` does not mutate `autoresearch-results/results.tsv`, retry verify commands, or escalate warnings over time. The standalone helper returns structured JSON:
+`autoresearch_health_check.py` does not mutate `research-validation-results/results.tsv`, retry verify commands, or escalate warnings over time. The standalone helper returns structured JSON:
 
 ```json
 {

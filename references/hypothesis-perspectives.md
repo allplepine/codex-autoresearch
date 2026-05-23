@@ -39,7 +39,7 @@ Ask: "Why might this hypothesis fail?"
 
 Ask: "What do past results and lessons tell me?"
 
-- Consult `autoresearch-results/lessons.md` for relevant entries.
+- Consult `research-validation-results/lessons.md` for relevant entries.
 - Review the results log for patterns:
   - Which validation strategies produced conclusive evidence?
   - Which files, configs, or datasets were sensitive to changes?

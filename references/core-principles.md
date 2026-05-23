@@ -50,7 +50,7 @@ Atomic experiments create causality. If the result changes, the agent knows why.
 
 ## 6. Git Is Memory
 
-Kept experiments stay in history. Failed experiments are rolled back using the pre-approved experiment rollback strategy. The results log (`autoresearch-results/results.tsv`) records every experiment -- kept or discarded -- as the true audit trail.
+Kept experiments stay in history. Failed experiments are rolled back using the pre-approved experiment rollback strategy. The results log (`research-validation-results/results.tsv`) records every experiment -- kept or discarded -- as the true audit trail.
 
 ## 7. Evidence Beats Optimization
 

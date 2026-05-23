@@ -30,21 +30,21 @@ HOOKS_FEATURE_KEY = "hooks"
 GOALS_FEATURE_KEY = "goals"
 HOOKS_FEATURE_DEFAULT_ENABLED = True
 GOALS_FEATURE_DEFAULT_ENABLED = False
-MANAGED_DIR_NAME = "autoresearch-hooks"
+MANAGED_DIR_NAME = "research-validation-skill-hooks"
 SESSION_SCRIPT_NAME = "session_start.py"
 STOP_SCRIPT_NAME = "stop.py"
 COMMON_SCRIPT_NAME = "autoresearch_hook_common.py"
 CONTEXT_SCRIPT_NAME = "autoresearch_hook_context.py"
 MANIFEST_FILE_NAME = "manifest.json"
-SESSION_STATUS_MESSAGE = "codex-autoresearch SessionStart hook"
-STOP_STATUS_MESSAGE = "codex-autoresearch Stop hook"
+SESSION_STATUS_MESSAGE = "research-validation-skill SessionStart hook"
+STOP_STATUS_MESSAGE = "research-validation-skill Stop hook"
 RECOMMENDED_LAUNCH_COMMAND = (
     "codex --enable goals --enable hooks --dangerously-bypass-approvals-and-sandbox"
 )
 SESSION_TIMEOUT_SECONDS = 5
 STOP_TIMEOUT_SECONDS = 10
-HOOK_TRUST_BLOCK_BEGIN = "# BEGIN codex-autoresearch hook trust"
-HOOK_TRUST_BLOCK_END = "# END codex-autoresearch hook trust"
+HOOK_TRUST_BLOCK_BEGIN = "# BEGIN research-validation-skill hook trust"
+HOOK_TRUST_BLOCK_END = "# END research-validation-skill hook trust"
 HELPER_BUNDLE_SCRIPT_NAMES = (
     "autoresearch_acceptance.py",
     "autoresearch_supervisor_status.py",
@@ -142,7 +142,7 @@ def source_context_script() -> Path:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Install, inspect, or remove the optional user-level Codex hooks used by codex-autoresearch."
+        description="Install, inspect, or remove the optional user-level Codex hooks used by research-validation-skill."
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
     status = subparsers.add_parser("status", help="Inspect the current hook installation.")

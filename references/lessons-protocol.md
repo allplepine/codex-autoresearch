@@ -18,7 +18,7 @@ The protocol-aligned runtime wiring is:
 Default filename:
 
 ```text
-autoresearch-results/lessons.md
+research-validation-results/lessons.md
 ```
 
 This file lives in the workspace-owned Results directory alongside `results.tsv`. It is never committed to git.
@@ -72,7 +72,7 @@ Extract a summary lesson:
 
 ### At Run Start (Phase 1: Read)
 
-1. Check if `autoresearch-results/lessons.md` exists.
+1. Check if `research-validation-results/lessons.md` exists.
 2. If it exists, read all entries.
 3. During hypothesis generation (Phase 3: Ideate), consult lessons to:
    - Prefer strategies that succeeded in similar contexts.

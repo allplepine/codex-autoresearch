@@ -11,7 +11,7 @@ Use this file as the primary execution checklist during active runs. Keep it sho
 5. Log negative and inconclusive results, not only supported hypotheses.
 6. Do not emit placeholder progress/status messages when there is no new experiment, no new verification result, and no new blocker.
 7. Use bundled helper scripts for authoritative TSV/JSON updates, keep/stop gating, and row/state semantics.
-8. All normal run artifacts are workspace-owned under `autoresearch-results/`: `results.tsv`, `state.json`, `context.json`, and `lessons.md`.
+8. All normal run artifacts are workspace-owned under `research-validation-results/`: `results.tsv`, `state.json`, `context.json`, and `lessons.md`.
 9. Stop only on hypothesis supported/refuted, evidence budget exhausted, manual stop, configured iteration cap, a true blocker, or the documented soft-blocker handoff after strategy exhaustion.
 10. After any context compaction event, re-read `core-principles.md`, this file, and `research-validation-workflow.md` before the next iteration.
 11. Every 10 iterations, run the Protocol Fingerprint Check. If any item fails, re-read the loaded runtime docs before continuing.
@@ -25,7 +25,7 @@ Verify you can still recall:
 - log every completed experiment before the next one starts,
 - negative and inconclusive results are valid outcomes,
 - helper scripts own authoritative TSV/JSON updates and keep/stop gating,
-- artifact paths come from `workspace_root` + `autoresearch-results/` and the repo-local pointer, never from repo-root artifact guessing,
+- artifact paths come from `workspace_root` + `research-validation-results/` and the repo-local pointer, never from repo-root artifact guessing,
 - the current stop conditions for this run,
 - the current rollback strategy in use,
 - the active pivot/refine escalation thresholds when they matter,

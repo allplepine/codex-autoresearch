@@ -69,7 +69,7 @@ Use the user's language. Keep it compact.
 - Idea: add contrastive loss to improve validation F1
 - Hypothesis: contrastive loss improves macro F1 without using validation labels in training
 - Baseline/control: current training script on `configs/base.yaml`
-- Results directory: `./autoresearch-results/`
+- Results directory: `./research-validation-results/`
 - Metric: validation macro F1, direction: higher
 - Verify: `python train.py --config configs/base.yaml && python eval.py --split val`
 - Leakage guard: do not edit `data/val*` or test labels; train split only

@@ -55,7 +55,7 @@ Use the launch gate first:
 python3 <skill-root>/scripts/autoresearch_launch_gate.py --repo /path/to/repo
 ```
 
-1. Resolve the current run through the repo-local pointer and `autoresearch-results/context.json`, then check `autoresearch-results/state.json` first (primary recovery source), followed by `autoresearch-results/results.tsv`, `autoresearch-results/lessons.md`, and recent `experiment:` commits.
+1. Resolve the current run through the repo-local pointer and `research-validation-results/context.json`, then check `research-validation-results/state.json` first (primary recovery source), followed by `research-validation-results/results.tsv`, `research-validation-results/lessons.md`, and recent `experiment:` commits.
 2. Apply the Recovery Priority Matrix from `session-resume-protocol.md`:
    - JSON valid + TSV consistent -> full resume (skip wizard).
    - JSON valid + TSV inconsistent -> mini-wizard (1 round).
@@ -70,7 +70,7 @@ Launch-gate interpretation:
 
 ### Run Artifact Initialization
 
-Do not create `autoresearch-results/results.tsv` or `autoresearch-results/state.json` before the baseline metric is known.
+Do not create `research-validation-results/results.tsv` or `research-validation-results/state.json` before the baseline metric is known.
 
 After Phase 2 establishes the baseline, initialize both artifacts together:
 
@@ -128,10 +128,10 @@ Do not silently infer every field and start iterating. The user should approve t
 
 Treat these files as experiment-owned artifacts, not unrelated user changes:
 
-- `autoresearch-results/results.tsv`
-- `autoresearch-results/state.json`
-- `autoresearch-results/context.json`
-- `autoresearch-results/lessons.md`
+- `research-validation-results/results.tsv`
+- `research-validation-results/state.json`
+- `research-validation-results/context.json`
+- `research-validation-results/lessons.md`
 - `.tmp`, `.bak`, and `.prev` variants of those files
 
 They may stay uncommitted between iterations and across resumes, but they must never be staged in experiment commits.
@@ -163,7 +163,7 @@ Before the first edit:
 2. Read configuration or build files that influence verification.
 3. Read the latest results log if one exists.
 4. Read recent git history relevant to the scoped files.
-5. Read `autoresearch-results/lessons.md` if it exists (see `references/lessons-protocol.md`).
+5. Read `research-validation-results/lessons.md` if it exists (see `references/lessons-protocol.md`).
 
 Before every later iteration:
 
@@ -208,7 +208,7 @@ Skip perspectives for obvious, mechanical validation steps.
 
 ### Lessons Consultation
 
-Consult `autoresearch-results/lessons.md` (see `references/lessons-protocol.md`):
+Consult `research-validation-results/lessons.md` (see `references/lessons-protocol.md`):
 - Prefer strategies that succeeded in similar contexts.
 - Avoid strategies that consistently failed.
 - Adapt successful strategies from related validation runs.
@@ -353,7 +353,7 @@ git reset --hard HEAD~1
 - Never roll back unrelated user changes or autoresearch-owned artifacts.
 - After rollback, record the result with the current clean HEAD. The description carries the failed hypothesis; the `commit` field records the closeout state the next iteration will start from.
 
-The results log (`autoresearch-results/results.tsv`) serves as the true audit trail for all experiments, including discarded ones.
+The results log (`research-validation-results/results.tsv`) serves as the true audit trail for all experiments, including discarded ones.
 
 ### Crash
 
@@ -382,7 +382,7 @@ The results log stays uncommitted.
 
 ### JSON State Update
 
-Do not hand-edit `autoresearch-results/results.tsv` or `autoresearch-results/state.json`.
+Do not hand-edit `research-validation-results/results.tsv` or `research-validation-results/state.json`.
 
 - For serial/main rows, prefer:
   ```bash
@@ -497,4 +497,4 @@ A **hard blocker** is any condition that makes continued iteration unsafe or mea
 
 Stop immediately if any hard blocker appears. Do not ask the user -- log the blocker in the completion summary.
 
-On hard blocker, log the blocker reason in TSV with status `blocked` and stop. Keep the retained-state fields in `autoresearch-results/state.json` unchanged (`current_metric`, `best_metric`, `best_iteration`, `last_commit`), but it is acceptable to advance audit counters such as `iteration`, `blocked`, `last_status`, and `last_trial_*` so the JSON snapshot stays aligned with the blocked TSV row. This preserves session resume without pretending the blocker improved the retained result.
+On hard blocker, log the blocker reason in TSV with status `blocked` and stop. Keep the retained-state fields in `research-validation-results/state.json` unchanged (`current_metric`, `best_metric`, `best_iteration`, `last_commit`), but it is acceptable to advance audit counters such as `iteration`, `blocked`, `last_status`, and `last_trial_*` so the JSON snapshot stays aligned with the blocked TSV row. This preserves session resume without pretending the blocker improved the retained result.

@@ -78,15 +78,15 @@ Required completion summary:
 
 Artifacts:
 
-- `autoresearch-results/results.tsv`
-- `autoresearch-results/state.json`
-- `autoresearch-results/context.json`
-- `autoresearch-results/lessons.md` if lessons were extracted
+- `research-validation-results/results.tsv`
+- `research-validation-results/state.json`
+- `research-validation-results/context.json`
+- `research-validation-results/lessons.md` if lessons were extracted
 
 Optional human-readable research closeout:
 
 ```text
-autoresearch-results/research/{YYMMDD}-{HHMM}-{slug}/
+research-validation-results/research/{YYMMDD}-{HHMM}-{slug}/
   validation-plan.md
   evidence-summary.md
   negative-results.md

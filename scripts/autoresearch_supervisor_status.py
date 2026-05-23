@@ -11,6 +11,7 @@ from typing import Any
 from autoresearch_core import print_json
 from autoresearch_helpers import (
     AutoresearchError,
+    ARTIFACT_DIR_NAME,
     acceptance_state,
     compare_summary_to_state,
     decimal_to_json_number,
@@ -458,7 +459,7 @@ def evaluate_supervisor_status(
                 "decision": RELAUNCH,
                 "reason": "missing_artifacts",
                 "reasons": [
-                    "Codex exited before initializing autoresearch-results/results.tsv / autoresearch-results/state.json."
+                    f"Codex exited before initializing {ARTIFACT_DIR_NAME}/results.tsv / {ARTIFACT_DIR_NAME}/state.json."
                 ],
                 "results_path": str(results_path),
                 "state_path": str(fallback_state_path),

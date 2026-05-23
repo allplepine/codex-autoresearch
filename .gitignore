@@ -14,6 +14,10 @@ results.tsv
 run.log
 autoresearch-lessons.md
 autoresearch-results/
+research-validation-results/
+generic-supervised-results/
+.research-validation-skill/
+.generic-supervised-skill/
 !tests/e2e-fixtures/exec_marker_reduction/autoresearch-results/
 !tests/e2e-fixtures/exec_marker_reduction/autoresearch-results/results.tsv
 !tests/e2e-fixtures/exec_marker_reduction/autoresearch-results/state.json

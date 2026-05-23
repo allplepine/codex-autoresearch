@@ -36,7 +36,7 @@ The objective is not to maximize a metric at all costs. The objective is to lear
 ## Runtime Cycle
 
 1. Read the current in-scope context, recent results rows, lessons, and retained state.
-2. If no baseline exists yet, measure the baseline/control and initialize `autoresearch-results/results.tsv` plus `autoresearch-results/state.json`.
+2. If no baseline exists yet, measure the baseline/control and initialize `research-validation-results/results.tsv` plus `research-validation-results/state.json`.
 3. Register the next validation question in one sentence before editing.
 4. Make one focused experimental change or one ablation.
 5. Create the scoped trial commit when the workspace is safe to isolate.

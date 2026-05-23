@@ -99,7 +99,7 @@ def validate_trial_commit_provenance(
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Append one main iteration row and atomically update autoresearch-results/state.json."
+        description=f"Append one main iteration row to {DEFAULT_RESULTS_PATH} and atomically update state.json."
     )
     parser.add_argument("--results-path", default=DEFAULT_RESULTS_PATH, help=argparse.SUPPRESS)
     parser.add_argument(

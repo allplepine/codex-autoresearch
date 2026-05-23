@@ -7,23 +7,23 @@ Detect and recover from interrupted runs. Resume from the last consistent retain
 The only supported normal artifact layout is workspace-owned:
 
 ```text
-<workspace_root>/autoresearch-results/results.tsv
-<workspace_root>/autoresearch-results/state.json
-<workspace_root>/autoresearch-results/lessons.md
-<workspace_root>/autoresearch-results/context.json
+<workspace_root>/research-validation-results/results.tsv
+<workspace_root>/research-validation-results/state.json
+<workspace_root>/research-validation-results/lessons.md
+<workspace_root>/research-validation-results/context.json
 ```
 
 Each managed git repo also stores a repo-local pointer at:
 
 ```bash
-.codex-autoresearch/pointer.json
+.research-validation-skill/pointer.json
 ```
 
-Status, stop, resume, and helper scripts resolve context in this order: current repo pointer, canonical `autoresearch-results/context.json`, then fail with a clear error. Do not walk upward from cwd looking for guessed contexts, and do not infer repo identity from a results path.
+Status, stop, resume, and helper scripts resolve context in this order: current repo pointer, canonical `research-validation-results/context.json`, then fail with a clear error. Do not walk upward from cwd looking for guessed contexts, and do not infer repo identity from a results path.
 
 ## JSON State File
 
-The primary recovery source is `autoresearch-results/state.json`, an atomic-write snapshot updated after each main iteration. Schema:
+The primary recovery source is `research-validation-results/state.json`, an atomic-write snapshot updated after each main iteration. Schema:
 
 ```json
 {
@@ -33,7 +33,7 @@ The primary recovery source is `autoresearch-results/state.json`, an atomic-writ
   "config": {
     "session_mode": null,
     "workspace_root": "/path/to/workspace",
-    "artifact_root": "/path/to/workspace/autoresearch-results",
+    "artifact_root": "/path/to/workspace/research-validation-results",
     "primary_repo": "/path/to/primary-repo",
     "goal": "<idea/hypothesis summary>",
     "hypothesis": "<registered hypothesis>",
@@ -118,11 +118,11 @@ At the start of every invocation, check for prior run artifacts in this order:
 
 | Priority | Signal | File / Command | Weight |
 |----------|--------|---------------|--------|
-| 1 | **JSON state** | `autoresearch-results/state.json` exists and is valid JSON with `version` field | **primary** |
-| 2 | Results log | `autoresearch-results/results.tsv` exists and has a baseline row | strong |
-| 3 | Lessons file | `autoresearch-results/lessons.md` exists | moderate |
+| 1 | **JSON state** | `research-validation-results/state.json` exists and is valid JSON with `version` field | **primary** |
+| 2 | Results log | `research-validation-results/results.tsv` exists and has a baseline row | strong |
+| 3 | Lessons file | `research-validation-results/lessons.md` exists | moderate |
 | 4 | Git history | Recent commits with `experiment:` prefix | moderate |
-| 5 | Output dirs | Optional research closeout directories such as `autoresearch-results/research/` | weak |
+| 5 | Output dirs | Optional research closeout directories such as `research-validation-results/research/` | weak |
 
 If none of these signals are present, proceed with a fresh run (normal wizard flow).
 
@@ -174,7 +174,7 @@ When the helper reports `full_resume`:
    ```
    Resuming from iteration {state.iteration}, retained metric: {state.current_metric}, best metric: {state.best_metric}.
    {state.keeps} kept, {state.discards} discarded, {state.crashes} crashed so far.
-   Source: autoresearch-results/state.json (validated against TSV main rows)
+   Source: research-validation-results/state.json (validated against TSV main rows)
    ```
 3. Skip the wizard entirely.
 4. Read the lessons file if present.
@@ -199,7 +199,7 @@ When JSON exists but the helper reports `mini_wizard`:
 
 When JSON is missing or unusable but the helper reports `tsv_fallback`:
 
-1. Reconstruct retained state from integer main rows in `autoresearch-results/results.tsv`.
+1. Reconstruct retained state from integer main rows in `research-validation-results/results.tsv`.
 2. If the user wants to resume, prefer:
    ```bash
    python3 <skill-root>/scripts/autoresearch_resume_check.py --repo /path/to/repo --write-repaired-state
@@ -213,24 +213,24 @@ When JSON is missing or unusable but the helper reports `tsv_fallback`:
 When the helper reports `fresh_start`:
 
 1. Proceed with the normal wizard flow.
-2. Rename prior persistent run artifacts in `autoresearch-results/` to `.prev` variants if they exist.
-3. Keep `autoresearch-results/lessons.md` unless it is clearly corrupt.
+2. Rename prior persistent run artifacts in `research-validation-results/` to `.prev` variants if they exist.
+3. Keep `research-validation-results/lessons.md` unless it is clearly corrupt.
 
 Legacy repo-root artifacts such as `research-results.tsv`, `autoresearch-state.json`, `autoresearch-launch.json`, `autoresearch-runtime.json`, and `autoresearch-runtime.log` do not participate in recovery. If they are detected, return:
 
 ```text
-Found legacy repo-root autoresearch artifacts. This version uses workspace-owned autoresearch-results/. Start a fresh run or move/archive the old artifacts.
+Found legacy repo-root autoresearch artifacts. This version uses workspace-owned research-validation-results/. Start a fresh run or move/archive the old artifacts.
 ```
 
 ## Edge Cases
 
 ### Corrupt JSON
 
-If `autoresearch-results/state.json` exists but is not valid JSON, treat it as unusable. Rename to `.bak` if you need to preserve it, then rely on TSV fallback or fresh start.
+If `research-validation-results/state.json` exists but is not valid JSON, treat it as unusable. Rename to `.bak` if you need to preserve it, then rely on TSV fallback or fresh start.
 
 ### Corrupt Results Log
 
-If `autoresearch-results/results.tsv` is missing a baseline row, has a broken header, or contains unparsable metric cells, treat it as corrupt and start fresh.
+If `research-validation-results/results.tsv` is missing a baseline row, has a broken header, or contains unparsable metric cells, treat it as corrupt and start fresh.
 
 ### Different Idea
 

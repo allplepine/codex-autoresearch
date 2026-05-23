@@ -41,7 +41,7 @@ Good queries:
 
 Bad queries:
 - `validate my idea`
-- `codex-autoresearch stuck`
+- `research-validation-skill stuck`
 - `MyProjectName search endpoint slow`
 
 ### Result Handling
