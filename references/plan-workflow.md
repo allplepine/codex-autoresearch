@@ -1,6 +1,6 @@
 # Plan Workflow
 
-Convert a goal into a validated, ready-to-launch `$codex-autoresearch` configuration.
+Convert a goal into a validated, ready-to-launch `$generic-supervised-skill` configuration.
 
 **Two-phase boundary:** All clarifying questions happen before launch. If `--launch` is used to start a loop from the plan output, the loop follows the autonomous-loop-protocol and never pauses to ask the user.
 
@@ -10,7 +10,7 @@ Use this mode when the user knows what they want but not how to define the loop.
 
 ## Trigger
 
-- `$codex-autoresearch Mode: plan`
+- `$generic-supervised-skill Mode: plan`
 - "help me set up autoresearch"
 - "plan an autoresearch run"
 - "what should my metric be"
@@ -147,7 +147,7 @@ Typical guards:
 Return a launch-ready block:
 
 ```text
-$codex-autoresearch
+$generic-supervised-skill
 Goal:
 Scope:
 Metric:
@@ -178,4 +178,4 @@ Reply sections:
 
 ## Success Criteria
 
-The workflow succeeds when the user can copy the generated block into `$codex-autoresearch` without ambiguity.
+The workflow succeeds when the user can copy the generated block into `$generic-supervised-skill` without ambiguity.

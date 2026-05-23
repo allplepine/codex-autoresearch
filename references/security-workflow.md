@@ -10,7 +10,7 @@ Use this mode for a read-only audit first, then optional repair.
 
 ## Trigger
 
-- `$codex-autoresearch Mode: security`
+- `$generic-supervised-skill Mode: security`
 - "security audit"
 - "find vulnerabilities"
 - "threat model this"

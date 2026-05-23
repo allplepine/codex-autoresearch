@@ -1,5 +1,5 @@
 ---
-name: codex-autoresearch
+name: generic-supervised-skill
 description: "Autonomous long-running iteration for Codex CLI. Use when the user wants Codex to plan or run an unattended improve-verify loop toward a measurable or verifiable outcome in the current Codex session, especially for overnight runs; it also covers repeated debugging, fixing, security auditing, and ship-readiness workflows. Do not use for ordinary one-shot coding help or casual Q&A."
 ---
 
@@ -17,7 +17,7 @@ Autonomous goal-directed iteration. Modify -> Verify -> Keep/Discard -> Repeat.
    - `references/interaction-wizard.md` for every new interactive launch (`loop`, `debug`, `fix`, `security`, `ship`) before execution begins
    - `references/results-logging.md` only when debugging TSV/state semantics or helper behavior directly
 4. Load the selected mode workflow reference plus only the detailed cross-cutting protocols that actually apply (`lessons`, `pivot`, `health-check`, `web-search`, `hypothesis-perspectives`). Active runs are serial; do not load or use the parallel experiments protocol during normal execution.
-5. Use the bundled helper scripts when stateful artifacts are involved. Resolve them relative to the loaded skill bundle root (`<skill-root>/scripts/...`), not the target repo root. In the common repo-local install this means commands such as `python3 .agents/skills/codex-autoresearch/scripts/autoresearch_init_run.py --repo <primary_repo> --workspace-root <workspace_root> ...`. New-run helpers (`autoresearch_init_run.py`) require both `--repo <primary_repo>` and `--workspace-root <workspace_root>`. Existing-run helpers (`autoresearch_resume_check.py`, `autoresearch_resume_prompt.py`, `autoresearch_supervisor_status.py`, `autoresearch_health_check.py`) require `--repo <primary_repo>` and resolve the workspace-owned Results directory from the repo-local pointer plus canonical context. `autoresearch_launch_gate.py --repo <primary_repo>` is the pre-wizard gate: it returns `fresh` for a clean repo with no prior artifacts and otherwise uses the same pointer/context recovery path.
+5. Use the bundled helper scripts when stateful artifacts are involved. Resolve them relative to the loaded skill bundle root (`<skill-root>/scripts/...`), not the target repo root. In the common repo-local install this means commands such as `python3 .agents/skills/generic-supervised-skill/scripts/autoresearch_init_run.py --repo <primary_repo> --workspace-root <workspace_root> ...`. New-run helpers (`autoresearch_init_run.py`) require both `--repo <primary_repo>` and `--workspace-root <workspace_root>`. Existing-run helpers (`autoresearch_resume_check.py`, `autoresearch_resume_prompt.py`, `autoresearch_supervisor_status.py`, `autoresearch_health_check.py`) require `--repo <primary_repo>` and resolve the workspace-owned Results directory from the repo-local pointer plus canonical context. `autoresearch_launch_gate.py --repo <primary_repo>` is the pre-wizard gate: it returns `fresh` for a clean repo with no prior artifacts and otherwise uses the same pointer/context recovery path.
 6. Execute the selected workflow exactly as written and produce the required structured output and artifacts.
 
 ## Core Loop
@@ -65,7 +65,7 @@ For every new interactive run, use the wizard contract in `references/interactio
 
 ## Interactive Supervised Runs
 
-- Use `$codex-autoresearch` for interactive autoresearch launches and follow-up controls.
+- Use `$generic-supervised-skill` for interactive autoresearch launches and follow-up controls.
 - For a new interactive run, scan the repo, ask the confirmation questions, and start a single supervised run in the current Codex session after the user explicitly approves execution with `go`.
 - Keep the operator-facing session and the active improve/verify loop in the current Codex thread. Do not delegate to another agent or spawn worker agents. The current session owns iteration, helper-script calls, commits, verification, logging, milestone summaries, and completion summaries.
 - Carry forward the confirmed objective, scope, metric, direction, verify/guard commands, workspace root, primary repo, companion repos, rollback policy, and the runtime checklist. Keep running until a stop condition, blocker, iteration cap, or user interrupt.
@@ -113,17 +113,17 @@ Minimum requirement:
 ## Quick Start
 
 ```text
-$codex-autoresearch
+$generic-supervised-skill
 I want to get rid of all the `any` types in my TypeScript code
 ```
 
 ```text
-$codex-autoresearch
+$generic-supervised-skill
 I want to make our API faster but I don't know where to start
 ```
 
 ```text
-$codex-autoresearch
+$generic-supervised-skill
 pytest is failing, 12 tests broken after the refactor
 ```
 

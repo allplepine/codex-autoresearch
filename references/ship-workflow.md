@@ -19,7 +19,7 @@ Convert "ready enough" into a gated ship process:
 
 ## Trigger
 
-- `$codex-autoresearch Mode: ship`
+- `$generic-supervised-skill Mode: ship`
 - "ship it"
 - "deploy this"
 - "publish this"

@@ -10,7 +10,7 @@ Use this mode when the user wants the system repaired, not just diagnosed.
 
 ## Trigger
 
-- `$codex-autoresearch Mode: fix`
+- `$generic-supervised-skill Mode: fix`
 - "fix all errors"
 - "make tests pass"
 - "fix the build"

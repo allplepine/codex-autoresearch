@@ -10,7 +10,7 @@ Use this mode when the user needs root-cause analysis rather than immediate blin
 
 ## Trigger
 
-- `$codex-autoresearch Mode: debug`
+- `$generic-supervised-skill Mode: debug`
 - "find all bugs"
 - "debug this"
 - "why is this failing"

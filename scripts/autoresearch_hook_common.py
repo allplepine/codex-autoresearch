@@ -25,8 +25,8 @@ MARKER_FILES = (
     STATE_FILE_NAME,
 )
 HELPER_ROOT_RELATIVE_CANDIDATES = (
-    Path(".agents/skills/codex-autoresearch"),
-    Path(".codex/skills/codex-autoresearch"),
+    Path(".agents/skills/generic-supervised-skill"),
+    Path(".codex/skills/generic-supervised-skill"),
 )
 HELPER_REQUIRED_FILES = (
     "autoresearch_supervisor_status.py",
@@ -37,7 +37,7 @@ HELPER_REQUIRED_FILES = (
     "autoresearch_repo_targets.py",
 )
 RESULTS_HEADER_PREFIX = "iteration\tcommit\tmetric\t"
-AUTORESEARCH_SKILL_MARKER = "$codex-autoresearch"
+AUTORESEARCH_SKILL_MARKER = "$generic-supervised-skill"
 AUTORESEARCH_BACKGROUND_MARKER = "This repo is managed by the autoresearch runtime controller."
 
 HOOK_ACTIVE_ENV = "AUTORESEARCH_HOOK_ACTIVE"
