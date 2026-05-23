@@ -15,13 +15,135 @@ from typing import Any
 from autoresearch_core import print_json
 from autoresearch_helpers import AutoresearchError, utc_now
 
+class _FallbackTomlDecodeError(Exception):
+    pass
+
+
+def strip_toml_comment(line: str) -> str:
+    in_quote = False
+    escaped = False
+    for index, character in enumerate(line):
+        if escaped:
+            escaped = False
+            continue
+        if character == "\\" and in_quote:
+            escaped = True
+            continue
+        if character == '"':
+            in_quote = not in_quote
+            continue
+        if character == "#" and not in_quote:
+            return line[:index]
+    return line
+
+
+def split_toml_path(raw: str) -> list[str]:
+    parts: list[str] = []
+    current: list[str] = []
+    in_quote = False
+    escaped = False
+    for character in raw.strip():
+        if escaped:
+            current.append(character)
+            escaped = False
+            continue
+        if character == "\\" and in_quote:
+            current.append(character)
+            escaped = True
+            continue
+        if character == '"':
+            current.append(character)
+            in_quote = not in_quote
+            continue
+        if character == "." and not in_quote:
+            part = parse_toml_key("".join(current).strip())
+            if part:
+                parts.append(part)
+            current = []
+            continue
+        current.append(character)
+    if in_quote:
+        raise _FallbackTomlDecodeError("unterminated quoted TOML key")
+    part = parse_toml_key("".join(current).strip())
+    if part:
+        parts.append(part)
+    return parts
+
+
+def parse_toml_key(raw: str) -> str:
+    if raw.startswith('"') and raw.endswith('"'):
+        try:
+            return str(json.loads(raw))
+        except json.JSONDecodeError as exc:
+            raise _FallbackTomlDecodeError(f"invalid quoted TOML key: {raw}") from exc
+    return raw
+
+
+def parse_toml_value(raw: str) -> Any:
+    value = strip_toml_comment(raw).strip()
+    if value == "true":
+        return True
+    if value == "false":
+        return False
+    if value.startswith('"') and value.endswith('"'):
+        try:
+            return json.loads(value)
+        except json.JSONDecodeError as exc:
+            raise _FallbackTomlDecodeError(f"invalid quoted TOML string: {value}") from exc
+    if value.startswith("'") and value.endswith("'"):
+        return value[1:-1]
+    return value
+
+
+def set_nested_value(payload: dict[str, Any], path: list[str], value: Any) -> None:
+    cursor = payload
+    for key in path[:-1]:
+        next_value = cursor.setdefault(key, {})
+        if not isinstance(next_value, dict):
+            next_value = {}
+            cursor[key] = next_value
+        cursor = next_value
+    if path:
+        cursor[path[-1]] = value
+
+
+def simple_toml_loads(text: str) -> dict[str, Any]:
+    payload: dict[str, Any] = {}
+    current_table: list[str] = []
+    for raw_line in text.splitlines():
+        line = strip_toml_comment(raw_line).strip()
+        if not line:
+            continue
+        if line.startswith("[") and line.endswith("]"):
+            if line.startswith("[["):
+                current_table = []
+                continue
+            current_table = split_toml_path(line[1:-1])
+            set_nested_value(payload, current_table, {})
+            continue
+        if "=" not in line:
+            continue
+        raw_key, raw_value = line.split("=", 1)
+        key_path = current_table + split_toml_path(raw_key)
+        set_nested_value(payload, key_path, parse_toml_value(raw_value))
+    return payload
+
+
+class _SimpleToml:
+    TOMLDecodeError = _FallbackTomlDecodeError
+
+    @staticmethod
+    def loads(text: str) -> dict[str, Any]:
+        return simple_toml_loads(text)
+
+
 try:
     import tomllib as _tomllib
 except ModuleNotFoundError:
     try:
         import tomli as _tomllib
     except ModuleNotFoundError:
-        _tomllib = None
+        _tomllib = _SimpleToml
 
 
 MANIFEST_VERSION = 2
@@ -190,10 +312,6 @@ def write_text_with_backup(path: Path, content: str) -> str | None:
 def parse_toml_config(text: str) -> dict[str, Any]:
     if not text.strip():
         return {}
-    if _tomllib is None:
-        raise AutoresearchError(
-            "TOML parsing requires Python 3.11+ or the 'tomli' package on Python 3.10 and older"
-        )
     try:
         payload = _tomllib.loads(text)
     except _tomllib.TOMLDecodeError as exc:
