@@ -103,4 +103,4 @@ Create the optional closeout only when useful or requested; the TSV/state artifa
 - Row descriptions should mention the hypothesis or ablation being tested.
 - Workspace-owned artifact metadata should use canonical paths. `context.json` and state config fields store absolute paths so resume and status helpers can resolve the active run without cwd guessing.
 - Final summaries should reference every artifact created.
-- Parallel workers use `[PARALLEL worker-{id}]` prefix.
+- Active runs use normal iteration lines only. Preserve legacy prefixes only when summarizing pre-existing historical rows.

@@ -1,6 +1,6 @@
 # Results Logging
 
-This is the detailed reference for TSV/state semantics. During research validation execution, treat `autoresearch_record_iteration.py` or `autoresearch_select_parallel_batch.py` as the authoritative closeout step instead of reopening this file.
+This is the detailed reference for TSV/state semantics. During research validation execution, treat `autoresearch_record_iteration.py` as the authoritative closeout step instead of reopening this file.
 
 ## Workspace-Owned Results Directory
 
@@ -89,7 +89,6 @@ The first comment line declares the metric direction. Additional comment lines m
 # baseline_control: current-training-script-on-base-config
 # leakage_guard: train-split-only
 # run_tag: any-types-v2
-# parallel: serial
 # web_search: enabled
 ```
 
@@ -103,7 +102,7 @@ iteration	commit	metric	delta	guard	status	description
 
 | Column | Meaning |
 |--------|---------|
-| `iteration` | Integer main iteration counter starting at `0` for the baseline. Parallel worker detail rows use suffix notation (`5a`, `5b`, `5c`) |
+| `iteration` | Integer main iteration counter starting at `0` for the baseline. Active runs write only integer rows. Legacy rows from older versions may use suffix notation (`5a`, `5b`, `5c`) and are ignored for retained-state replay. |
 | `commit` | Short hash for the primary repo's clean HEAD after the iteration is closed out. For `keep`, this is the trial commit. For reverted `discard` or `crash` rows, this is the rollback/restored HEAD. Use `-` only for meta rows that did not test a committed trial (for example `pivot`, `search`, or a strategy-only `refine`) |
 | `metric` | Parsed metric value for that row's attempt or recalibration |
 | `delta` | `metric - retained_metric_before_row` |
@@ -190,18 +189,11 @@ iteration	commit	metric	delta	guard	status	description
 4	e5f6a7b	9	0	fail	discard	[inconclusive] retrieval temperature change failed leakage guard
 ```
 
-## Parallel Batch Notation
+## Legacy Suffix Rows
 
-When parallel experiments are active (see `references/parallel-experiments-protocol.md`), log worker detail rows first, then append one authoritative main row for the batch:
+Active runs must write one authoritative integer row per completed iteration. Older result logs may contain suffix rows such as `5a`, `5b`, or `5c`; keep these as historical audit detail, but do not create new suffix rows during current-session serial execution.
 
-```tsv
-5a	abc1234	38	-3	pass	keep	[PARALLEL worker-a] narrowed auth types
-5b	-	42	+1	pass	discard	[PARALLEL worker-b] wrapper approach
-5c	-	41	0	-	crash	[PARALLEL worker-c] timeout after 20m
-5	abc1234	38	-3	pass	keep	[PARALLEL batch] selected worker-a: narrowed auth types
-```
-
-Only integer rows (`0`, `1`, `2`, `5`) define the retained state. Worker rows are audit detail and never increment `state.iteration` by themselves.
+Only integer rows (`0`, `1`, `2`, `5`) define the retained state.
 
 ## Helper Scripts
 
@@ -217,8 +209,6 @@ Define `<skill-root>` as the directory that contains the loaded `SKILL.md`. In t
   Appends one authoritative main iteration row and updates JSON state atomically. Multi-repo runs may add repeated `--repo-commit PATH=COMMIT` flags to update companion-repo commit provenance while the TSV `commit` column continues to track the primary repo. Repeated `--label LABEL` flags record structured keep/stop-gating labels on the attempted row and retained state.
 - `python3 <skill-root>/scripts/autoresearch_resume_check.py --repo <repo>`
   Reconstructs retained state from the TSV and decides `full_resume`, `mini_wizard`, `tsv_fallback`, or `fresh_start`.
-- `python3 <skill-root>/scripts/autoresearch_select_parallel_batch.py --batch-file ...`
-  Logs worker rows, runs the batch-boundary health/worktree preflight, appends the main batch row, and updates JSON state once per batch. Worker batch items may include `repo_commits` for companion-repo provenance and `labels` for structured keep/stop gating.
 - `python3 <skill-root>/scripts/autoresearch_supervisor_status.py --repo <repo>`
   Computes whether the supervised run should continue, stop, or ask for human help after a finished turn.
 
@@ -240,7 +230,7 @@ Define `<skill-root>` as the directory that contains the loaded `SKILL.md`. In t
 | Aspect | `autoresearch-results/results.tsv` | `autoresearch-results/state.json` |
 |--------|----------------------|--------------------------|
 | **Purpose** | Full audit trail of every iteration | Compact snapshot for fast resume |
-| **Content** | One main row per iteration, plus optional worker detail rows | Aggregated counters and config |
+| **Content** | One main row per iteration, plus legacy suffix rows if imported from older runs | Aggregated counters and config |
 | **Recovery role** | Fallback when JSON is missing | Primary recovery source |
 | **Cross-validation** | Reconstruct retained state from integer main rows | Must match the reconstructed retained state |
 
@@ -250,6 +240,6 @@ Define `<skill-root>` as the directory that contains the loaded `SKILL.md`. In t
 - **Retained metric match:** `state.current_metric` must equal the retained metric after replaying the integer main rows. After a `discard`, the TSV row records the attempted metric, but `state.current_metric` stays at the last kept metric.
 - **Last trial match:** `state.last_trial_metric` must equal the metric on the latest integer main row.
 - **Multi-repo provenance:** when `state.last_repo_commits` or `state.last_trial_repo_commits` are present, they are auxiliary JSON-only provenance keyed by repo path. They are not reconstructed from the TSV and therefore do not participate in TSV/JSON consistency blocking.
-- **Parallel tolerance:** Worker rows (`5a`, `5b`, `5c`) are ignored for `state.iteration` matching. They provide audit detail only.
+- **Legacy suffix-row tolerance:** Rows such as `5a`, `5b`, and `5c` are ignored for `state.iteration` matching. They provide audit detail only.
 
 During session resume, `python3 <skill-root>/scripts/autoresearch_resume_check.py --repo <repo>` reconstructs the retained state from the TSV and compares it with `autoresearch-results/state.json`. Any mismatch triggers a mini-wizard rather than a silent full resume.

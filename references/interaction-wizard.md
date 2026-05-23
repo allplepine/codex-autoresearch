@@ -17,8 +17,8 @@ The user may provide only a rough research idea. Codex should scan the repo, inf
 5. Always confirm hypothesis, baseline/control, metric, verify command, leakage guard, ablation boundary, and repeat policy.
 6. Do not require statistical decision rules. Use repeats/seeds only when the metric is noisy, the repo already supports them, or the user asks.
 7. Present a structured confirmation summary before launching.
-8. End the confirmation summary with a clear call to action that explicitly authorizes a supervised worker subagent.
-9. After launch approval, start from the same skill entrypoint. The parent session monitors; the worker subagent performs the validation run.
+8. End the confirmation summary with a clear call to action that explicitly authorizes a supervised current-session run.
+9. After launch approval, start from the same skill entrypoint. The current Codex session performs the validation run directly and reports concise milestone summaries.
 10. After the launch gate allows a fresh or confirmed launch, check `python3 <skill-root>/scripts/autoresearch_hooks_ctl.py status`. If setup is missing, stale, disabled, or untrusted, run `python3 <skill-root>/scripts/autoresearch_hooks_ctl.py install` before clarification continues. Treat setup details as internal preparation unless a setup failure blocks launch.
 
 ## Clarification Protocol
@@ -85,7 +85,7 @@ Use the user's language. Keep it compact.
 - Log support, refutation, and inconclusive/negative results.
 
 **Next step**
-- Reply "go" to authorize a supervised worker subagent to start, or tell me what to change.
+- Reply "go" to authorize the supervised run to start in this session, or tell me what to change.
 ```
 
 Format rules:
@@ -102,11 +102,9 @@ When the user replies with launch approval:
 
 1. Ensure setup check is complete.
 2. Align the official Codex goal when model-visible goal tools are available.
-3. Start a worker subagent when subagent tools are available; call `spawn_agent` with `agent_type=worker` and `fork_context=true`.
-4. Give the worker the confirmed idea, hypothesis, baseline/control, metric, direction, verify command, leakage guard, ablation boundary, repeat policy, workspace paths, selected references, and runtime checklist.
-5. Tell the worker to use the helper scripts for `results.tsv`, `state.json`, and `context.json`, and to log negative and inconclusive outcomes.
-6. The parent session monitors concise milestone summaries only. Do not duplicate the validation run locally.
-7. If subagent tools are unavailable, run the same protocol directly in the current session and state that the context-saving worker path is unavailable.
+3. Continue in the current Codex session with the confirmed idea, hypothesis, baseline/control, metric, direction, verify command, leakage guard, ablation boundary, repeat policy, workspace paths, selected references, and runtime checklist.
+4. Use the helper scripts for `results.tsv`, `state.json`, and `context.json`, and log negative and inconclusive outcomes.
+5. Do not spawn workers or delegate the validation run. The current session performs the run directly and reports concise milestone summaries.
 
 ## Internal Field Mapping
 
@@ -149,4 +147,4 @@ When `session-resume-protocol.md` detects a prior run with valid `state.json` bu
    - resume from JSON state, or
    - start fresh and archive old artifacts.
 3. If resuming, show a condensed confirmation summary from JSON config.
-4. The user replies "go" and the supervised validation run resumes immediately.
+4. The user replies "go" and the supervised validation run resumes immediately in the current session.

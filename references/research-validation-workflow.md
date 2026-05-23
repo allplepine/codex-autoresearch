@@ -47,7 +47,7 @@ The objective is not to maximize a metric at all costs. The objective is to lear
    - `discard` when evidence refutes the hypothesis or the change is unsupported,
    - `crash` when verification cannot produce usable evidence,
    - `no-op` when no actual experiment was run.
-9. Record the result through `autoresearch_record_iteration.py` or `autoresearch_select_parallel_batch.py` using the current clean HEAD after closeout.
+9. Record the result through `autoresearch_record_iteration.py` using the current clean HEAD after closeout.
 10. Only after the result is recorded, choose the next validation question.
 
 ## Research Discipline
